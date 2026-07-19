@@ -222,6 +222,25 @@
     .sync-dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#a3a3a3; margin-right:6px; }
     .sync-dot.ok { background: var(--green); }
     .sync-dot.warn { background: #b45309; }
+
+    .mode-tabs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 18px; }
+    .mode-tab { border:0; border-radius:14px; padding:14px 12px; font-weight:900; background:#e7e5e4; color:var(--ink); cursor:pointer; }
+    .mode-tab.active { background:#171717; color:white; }
+    .view[hidden] { display:none !important; }
+    .fragment-card { background:var(--card); border-radius:30px; padding:26px 20px; box-shadow:var(--shadow); border:1px solid rgba(0,0,0,.04); }
+    .fragment-card textarea, .fragment-card input { width:100%; border:1px solid #cfcfcf; border-radius:14px; padding:14px; background:white; font:inherit; }
+    .fragment-card textarea { min-height:260px; resize:vertical; font-family:Georgia,serif; font-size:1.08rem; line-height:1.5; }
+    .fragment-form { display:grid; gap:12px; }
+    .fragment-actions { display:flex; gap:9px; flex-wrap:wrap; }
+    .fragment-list { margin-top:22px; display:grid; gap:10px; }
+    .fragment-item { background:rgba(255,255,255,.62); border-radius:18px; padding:15px; border:1px solid rgba(0,0,0,.06); }
+    .fragment-item-head { display:flex; justify-content:space-between; gap:12px; align-items:start; }
+    .fragment-code { font-weight:900; color:var(--red-dark); }
+    .fragment-title { font-weight:900; margin:3px 0 8px; }
+    .fragment-body { white-space:pre-wrap; line-height:1.45; color:#353535; max-height:8.5em; overflow:hidden; }
+    .fragment-meta { color:var(--muted); font-size:.78rem; margin-top:10px; }
+    .fragment-item button { margin-top:10px; }
+
     @media (max-width: 520px) {
       .app { padding-left: 12px; padding-right: 12px; }
       .recorder { padding-left: 14px; padding-right: 14px; }
@@ -237,6 +256,11 @@
       <div class="date" id="todayLabel"></div>
     </header>
 
+    <nav class="mode-tabs" aria-label="App sections">
+      <button class="mode-tab active" id="timerTab" type="button">Stolen Minutes</button>
+      <button class="mode-tab" id="fragmentsTab" type="button">Fragments</button>
+    </nav>
+
     <section class="cloud-card" aria-label="Cloud sync">
       <div class="cloud-row" id="signedOutControls">
         <input id="emailInput" type="email" autocomplete="email" placeholder="Email for secure sync">
@@ -250,6 +274,7 @@
       <p class="cloud-status"><span class="sync-dot" id="syncDot"></span><span id="cloudStatus">Local-only mode until Supabase is configured and you sign in.</span></p>
     </section>
 
+    <div class="view" id="timerView">
     <section class="recorder" aria-labelledby="recorderTitle">
       <p class="eyebrow" id="recorderTitle">Time auditor</p>
       <p class="activity" id="activityLabel">Press, then name the activity</p>
@@ -286,6 +311,26 @@
         Export remains available as an additional portable backup.
       </p>
     </section>
+    </div>
+
+    <div class="view" id="fragmentsView" hidden>
+      <section class="fragment-card">
+        <p class="eyebrow">Capture</p>
+        <h2 style="margin-bottom:14px">New Fragment</h2>
+        <form class="fragment-form" id="fragmentForm">
+          <input id="fragmentTitleInput" type="text" maxlength="200" placeholder="Optional title">
+          <textarea id="fragmentBodyInput" required placeholder="Type, paste, or use the Apple keyboard microphone…"></textarea>
+          <input id="fragmentTagsInput" type="text" maxlength="500" placeholder="Optional tags, separated by commas">
+          <div class="fragment-actions">
+            <button class="small-button primary" type="submit">Save Fragment</button>
+            <button class="small-button" id="clearFragmentDraft" type="button">Clear</button>
+            <button class="small-button" id="exportFragments" type="button">Export Markdown</button>
+          </div>
+        </form>
+        <p class="note" id="fragmentStatus">Fragments are cached locally and sync to the same Supabase account.</p>
+      </section>
+      <section class="fragment-list" id="fragmentList"></section>
+    </div>
   </main>
 
   <dialog id="clearDialog">
@@ -307,6 +352,7 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "/config.js";
   const STORAGE_KEY = "stolen-minutes-ledger-v2";
   const LEGACY_STORAGE_KEY = "stolen-minutes-ledger-v1";
   const ACTIVE_KEY = "stolen-minutes-active-v1";
+  const FRAGMENTS_KEY = "stolen-minutes-fragments-v1";
   const configured = SUPABASE_URL?.startsWith("https://") && SUPABASE_PUBLISHABLE_KEY && !SUPABASE_PUBLISHABLE_KEY.includes("PASTE_");
   const supabase = configured ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -317,10 +363,12 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "/config.js";
   const timerEl=$("timer"), statusEl=$("status"), fallback=$("fallback"), activityInput=$("activityInput");
   const entriesEl=$("entries"), todayTotalEl=$("todayTotal"), cloudStatus=$("cloudStatus"), syncDot=$("syncDot");
   let ledger=loadJson(STORAGE_KEY, loadJson(LEGACY_STORAGE_KEY, []));
+  let fragments=loadJson(FRAGMENTS_KEY, []);
   let active=loadJson(ACTIVE_KEY,null), ticker=null, recognition=null, session=null, syncing=false;
 
   function loadJson(key,fallbackValue){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallbackValue}catch{return fallbackValue}}
   function saveLedger(){localStorage.setItem(STORAGE_KEY,JSON.stringify(ledger))}
+  function saveFragments(){localStorage.setItem(FRAGMENTS_KEY,JSON.stringify(fragments))}
   function saveActive(){active?localStorage.setItem(ACTIVE_KEY,JSON.stringify(active)):localStorage.removeItem(ACTIVE_KEY)}
   const pad=n=>String(n).padStart(2,"0");
   function formatElapsed(ms){const t=Math.max(0,Math.floor(ms/1000));return `${pad(Math.floor(t/3600))}:${pad(Math.floor((t%3600)/60))}:${pad(t%60)}`}
@@ -352,6 +400,33 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "/config.js";
     todayTotalEl.textContent=formatDuration(items.reduce((s,x)=>s+x.elapsedMs,0));
     entriesEl.innerHTML=items.length?items.map(x=>`<article class="entry"><div class="entry-title">${escapeHtml(x.activity)}</div><div class="entry-duration">${formatDuration(x.elapsedMs)}</div><div class="entry-meta">${formatTime(x.startedAt)}–${formatTime(x.endedAt)} · ${formatElapsed(x.elapsedMs)}</div></article>`).join(""):'<div class="empty">No completed activities today.</div>';
   }
+  function renderFragments(){
+    const list=$("fragmentList");
+    const sorted=[...fragments].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    list.innerHTML=sorted.length?sorted.map(f=>`<article class="fragment-item"><div class="fragment-item-head"><div><div class="fragment-code">${escapeHtml(f.fragmentCode)}</div><div class="fragment-title">${escapeHtml(f.title||"Untitled fragment")}</div></div><button class="small-button danger" data-delete-fragment="${escapeHtml(f.id)}" type="button">Delete</button></div><div class="fragment-body">${escapeHtml(f.body)}</div>${f.tags?.length?`<div class="fragment-meta">${escapeHtml(f.tags.join(", "))}</div>`:""}<div class="fragment-meta">${new Date(f.createdAt).toLocaleString()}</div></article>`).join(""):'<div class="empty">No fragments yet.</div>';
+  }
+  function setMode(mode){
+    const isFragments=mode==="fragments";
+    $("timerView").hidden=isFragments; $("fragmentsView").hidden=!isFragments;
+    $("timerTab").classList.toggle("active",!isFragments); $("fragmentsTab").classList.toggle("active",isFragments);
+    if(isFragments)setTimeout(()=>$("fragmentBodyInput").focus(),0);
+  }
+  function nextFragmentCode(){
+    const max=fragments.reduce((m,f)=>Math.max(m,Number(String(f.fragmentCode||"").replace(/\D/g,""))||0),0);
+    return `F${String(max+1).padStart(3,"0")}`;
+  }
+  async function saveFragment(e){
+    e.preventDefault(); const body=$("fragmentBodyInput").value.trim(); if(!body)return;
+    const now=new Date().toISOString();
+    const fragment={id:crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`,fragmentCode:nextFragmentCode(),title:$("fragmentTitleInput").value.trim()||"Untitled fragment",body,tags:$("fragmentTagsInput").value.split(",").map(x=>x.trim()).filter(Boolean),createdAt:now,updatedAt:now};
+    fragments.push(fragment); saveFragments(); renderFragments(); $("fragmentForm").reset(); $("fragmentStatus").textContent=`Saved ${fragment.fragmentCode}.`;
+    if(session&&navigator.onLine)await syncCloud();
+  }
+  function exportFragmentsMarkdown(){
+    const content=[...fragments].sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).map(f=>`# ${f.fragmentCode} — ${f.title||"Untitled fragment"}\n\n${f.body}\n\n${f.tags?.length?`Tags: ${f.tags.join(", ")}\n\n`:""}Created: ${f.createdAt}`).join("\n\n---\n\n");
+    download(`fragments-${localDateKey(new Date())}.md`,"text/markdown;charset=utf-8",content||"# Fragments\n");
+  }
+
   function startTicker(){stopTicker();const u=()=>{if(active)timerEl.textContent=formatElapsed(Date.now()-new Date(active.startedAt).getTime())};u();ticker=setInterval(u,1000)}
   function stopTicker(){if(ticker)clearInterval(ticker);ticker=null}
   function startActivity(){active={id:crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`,activity:"",startedAt:new Date().toISOString()};saveActive();render();captureActivity()}
@@ -389,7 +464,11 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "/config.js";
       const rows=ledger.map(x=>({id:x.id,user_id:session.user.id,activity:x.activity,started_at:x.startedAt,ended_at:x.endedAt,elapsed_ms:x.elapsedMs,updated_at:x.updatedAt||x.endedAt}));
       if(rows.length){const {error}=await supabase.from("activities").upsert(rows,{onConflict:"id"});if(error)throw error}
       const {data,error}=await supabase.from("activities").select("id,activity,started_at,ended_at,elapsed_ms,updated_at").order("started_at",{ascending:true});if(error)throw error;
-      const map=new Map(ledger.map(x=>[x.id,x]));(data||[]).forEach(r=>map.set(r.id,{id:r.id,activity:r.activity,startedAt:r.started_at,endedAt:r.ended_at,elapsedMs:Number(r.elapsed_ms),updatedAt:r.updated_at}));ledger=[...map.values()];saveLedger();render();setCloud(`Synced ${ledger.length} record${ledger.length===1?"":"s"}.`,"ok");
+      const map=new Map(ledger.map(x=>[x.id,x]));(data||[]).forEach(r=>map.set(r.id,{id:r.id,activity:r.activity,startedAt:r.started_at,endedAt:r.ended_at,elapsedMs:Number(r.elapsed_ms),updatedAt:r.updated_at}));ledger=[...map.values()];saveLedger();
+      const fragmentRows=fragments.map(f=>({id:f.id,user_id:session.user.id,fragment_code:f.fragmentCode,title:f.title,body:f.body,tags:f.tags||[],created_at:f.createdAt,updated_at:f.updatedAt||f.createdAt}));
+      if(fragmentRows.length){const {error:fragmentUpsertError}=await supabase.from("fragments").upsert(fragmentRows,{onConflict:"id"});if(fragmentUpsertError)throw fragmentUpsertError}
+      const {data:cloudFragments,error:fragmentFetchError}=await supabase.from("fragments").select("id,fragment_code,title,body,tags,created_at,updated_at").order("created_at",{ascending:true});if(fragmentFetchError)throw fragmentFetchError;
+      const fragmentMap=new Map(fragments.map(f=>[f.id,f]));(cloudFragments||[]).forEach(r=>fragmentMap.set(r.id,{id:r.id,fragmentCode:r.fragment_code,title:r.title,body:r.body,tags:r.tags||[],createdAt:r.created_at,updatedAt:r.updated_at}));fragments=[...fragmentMap.values()];saveFragments();render();renderFragments();setCloud(`Synced ${ledger.length} timer record${ledger.length===1?"":"s"} and ${fragments.length} fragment${fragments.length===1?"":"s"}.`,"ok");
     }catch(e){setCloud(`Sync failed: ${e.message||e}`,"warn")}finally{syncing=false}
   }
   async function signOut(){if(!supabase)return;await supabase.auth.signOut({scope:"local"});session=null;render()}
@@ -406,9 +485,12 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "/config.js";
   $("sendLinkButton").addEventListener("click",sendMagicLink);$("syncButton").addEventListener("click",syncCloud);$("signOutButton").addEventListener("click",signOut);
   const clearDialog=$("clearDialog");$("clearData").addEventListener("click",()=>clearDialog.showModal());$("cancelClear").addEventListener("click",()=>clearDialog.close());
   $("confirmClear").addEventListener("click",()=>{ledger=[];active=null;localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(LEGACY_STORAGE_KEY);localStorage.removeItem(ACTIVE_KEY);clearDialog.close();render()});
+  $("timerTab").addEventListener("click",()=>setMode("timer")); $("fragmentsTab").addEventListener("click",()=>setMode("fragments"));
+  $("fragmentForm").addEventListener("submit",saveFragment); $("clearFragmentDraft").addEventListener("click",()=>$("fragmentForm").reset()); $("exportFragments").addEventListener("click",exportFragmentsMarkdown);
+  $("fragmentList").addEventListener("click",async e=>{const id=e.target?.dataset?.deleteFragment;if(!id)return;fragments=fragments.filter(f=>f.id!==id);saveFragments();renderFragments();if(session&&navigator.onLine){await supabase.from("fragments").delete().eq("id",id);await syncCloud()}});
   document.addEventListener("visibilitychange",()=>{if(!document.hidden){render();if(session)syncCloud()}});window.addEventListener("online",()=>{render();if(session)syncCloud()});window.addEventListener("offline",render);
   if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
-  render();initAuth();
+  render();renderFragments();setMode("timer");initAuth();
 })();
 </script>
 </body>

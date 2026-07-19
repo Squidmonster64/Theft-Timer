@@ -1,50 +1,20 @@
-# Theft Timer / Stolen Minutes — Supabase edition
+# Stolen Minutes + Fragments
 
-This build keeps an offline local cache and synchronises completed activities to a private Supabase table after email magic-link sign-in.
+One installable PWA with two tools:
 
-## 1. Create/configure the Supabase project
+- **Stolen Minutes** — time activity sessions.
+- **Fragments** — type, paste, or dictate text using the Apple keyboard microphone.
 
-1. Open the project in Supabase.
-2. Open **SQL Editor**.
-3. Paste and run `supabase-schema.sql`.
-4. Open **Authentication → URL Configuration**.
-5. Set **Site URL** to `https://theft-timer-production.up.railway.app`.
-6. Add the same address under **Redirect URLs**.
+Both use the same Supabase login and project, with separate `activities` and `fragments` tables. Both retain a local offline cache.
 
-## 2. Add browser-safe project credentials
+## Deploy update
 
-Open **Project Settings → API** and copy:
+1. In Supabase, open **SQL Editor**.
+2. Run the complete `supabase-schema.sql` file. It is safe to run again and adds the `fragments` table and Row Level Security policies.
+3. Copy this folder over the existing Theft-Timer repository.
+4. Commit and push to GitHub. Railway should redeploy automatically.
+5. On iPhone, fully close and reopen the installed PWA. If the old interface remains, remove it from the Home Screen and add it again from Safari.
 
-- Project URL
-- Publishable key (or legacy `anon` key)
+## Supabase configuration
 
-Edit `config.js`. Never use the `service_role` key in this app.
-
-## 3. Push update
-
-```bash
-cd ~/Downloads/Theft-Timer
-# Copy this bundle's files into the repository first
-git add .
-git commit -m "Add secure Supabase cloud sync"
-git push
-```
-
-Railway will redeploy automatically.
-
-## 4. First login
-
-1. Open the Railway URL.
-2. Enter your email.
-3. Press **Email login link**.
-4. Open the Supabase email link.
-5. Press **Sync now**.
-
-Existing local records are uploaded on the first sync.
-
-## Storage model
-
-- Supabase is the durable cloud record.
-- Local Storage is retained as an offline cache.
-- Row Level Security permits each authenticated user to access only their own records.
-- JSON and CSV exports remain available.
+`config.js` already contains the configured project URL and publishable key. Never place a Supabase service-role key in this app.

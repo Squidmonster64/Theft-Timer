@@ -1,3 +1,4 @@
-// Safe to expose in a browser. Use only the Supabase publishable/anon key — never service_role.
-export const SUPABASE_URL = "https://PASTE_YOUR_PROJECT_REF.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "PASTE_YOUR_PUBLISHABLE_OR_ANON_KEY";
+// Supabase browser configuration.
+// This publishable key is safe for client-side use with Row Level Security enabled.
+export const SUPABASE_URL = "https://dhrkvrnkuboojwaykpbh.supabase.co";
+export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_IZq79YeBWNQTOdntRFtD6w_tLeHtfnU";
