@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#991b1b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Stolen Minutes">
+  <link rel="manifest" href="/manifest.json">
+  <title>Stolen Minutes</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #171717;
+      --muted: #737373;
+      --line: #e5e5e5;
+      --paper: #f5f1e9;
+      --card: #fffdf8;
+      --red: #b42318;
+      --red-dark: #7f1d1d;
+      --green: #166534;
+      --shadow: 0 16px 45px rgba(23, 23, 23, .10);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--paper); color: var(--ink); }
+    body {
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+    button, input { font: inherit; }
+    .app {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      padding: 18px 16px 40px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0;
+      font: 800 clamp(1.55rem, 7vw, 2.35rem)/1.05 Georgia, serif;
+    }
+    .date {
+      color: var(--muted);
+      font-size: .9rem;
+      text-align: right;
+    }
+    .recorder {
+      background: var(--card);
+      border-radius: 30px;
+      padding: 32px 20px 26px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(0,0,0,.04);
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: .73rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .activity {
+      min-height: 2.5rem;
+      margin: 0 auto 18px;
+      font: 700 clamp(1.45rem, 6vw, 2.1rem)/1.15 Georgia, serif;
+      max-width: 560px;
+    }
+    .timer {
+      margin: 0 0 24px;
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(2rem, 13vw, 4.2rem);
+      font-weight: 800;
+      letter-spacing: -.04em;
+    }
+    .record-button {
+      width: 156px;
+      height: 156px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--red);
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 14px 30px rgba(180,35,24,.35);
+      transition: transform .12s ease, background .2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .record-button:active { transform: scale(.97); }
+    .record-button.running {
+      background: var(--red-dark);
+      animation: pulse 1.4s infinite;
+    }
+    .record-button .icon {
+      display: block;
+      font-size: 3.3rem;
+      line-height: 1;
+      margin-bottom: 5px;
+    }
+    .record-button .label {
+      display: block;
+      font-size: .84rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+    @keyframes pulse {
+      50% { box-shadow: 0 0 0 20px rgba(180,35,24,.13), 0 14px 30px rgba(180,35,24,.25); }
+    }
+    .status {
+      min-height: 1.3rem;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .fallback {
+      display: none;
+      gap: 10px;
+      margin: 18px auto 0;
+      max-width: 480px;
+    }
+    .fallback.show { display: grid; grid-template-columns: 1fr auto; }
+    .fallback input {
+      width: 100%;
+      border: 1px solid #cfcfcf;
+      border-radius: 12px;
+      padding: 13px 14px;
+      background: white;
+    }
+    .small-button, .toolbar button, .file-label {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      background: #e7e5e4;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .summary {
+      margin-top: 24px;
+      background: rgba(255,255,255,.56);
+      border-radius: 24px;
+      padding: 20px;
+    }
+    .summary-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    h2 { margin: 0; font: 800 1.35rem/1.1 Georgia, serif; }
+    .total {
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+    .entries { display: grid; gap: 0; }
+    .entry {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 16px;
+      padding: 15px 2px;
+      border-top: 1px solid var(--line);
+    }
+    .entry:first-child { border-top: 0; }
+    .entry-title { font-weight: 850; }
+    .entry-duration { font-weight: 900; font-variant-numeric: tabular-nums; }
+    .entry-meta {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: .84rem;
+    }
+    .empty {
+      padding: 22px 0 8px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 20px;
+    }
+    .toolbar .danger { background: #fee2e2; color: #991b1b; }
+    .toolbar .primary { background: #171717; color: white; }
+    .file-label input { display: none; }
+    .note {
+      margin: 18px 2px 0;
+      color: var(--muted);
+      font-size: .78rem;
+      line-height: 1.45;
+    }
+    dialog {
+      width: min(500px, calc(100% - 32px));
+      border: 0;
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    dialog::backdrop { background: rgba(0,0,0,.35); }
+    dialog h3 { margin-top: 0; }
+    dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin-bottom: 0; }
+    @media (max-width: 520px) {
+      .app { padding-left: 12px; padding-right: 12px; }
+      .recorder { padding-left: 14px; padding-right: 14px; }
+      .record-button { width: 146px; height: 146px; }
+      .summary { padding: 17px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Stolen Minutes</h1>
+      <div class="date" id="todayLabel"></div>
+    </header>
+
+    <section class="recorder" aria-labelledby="recorderTitle">
+      <p class="eyebrow" id="recorderTitle">Time auditor</p>
+      <p class="activity" id="activityLabel">Press, then name the activity</p>
+      <p class="timer" id="timer">00:00:00</p>
+
+      <button class="record-button" id="recordButton" type="button" aria-label="Start activity">
+        <span class="icon">●</span>
+        <span class="label" id="buttonLabel">START</span>
+      </button>
+
+      <p class="status" id="status">Ready</p>
+
+      <div class="fallback" id="fallback">
+        <input id="activityInput" type="text" autocomplete="off" placeholder="e.g. cleaning">
+        <button class="small-button" id="useTextButton" type="button">Use</button>
+      </div>
+    </section>
+
+    <section class="summary">
+      <div class="summary-head">
+        <h2>Today</h2>
+        <div class="total" id="todayTotal">0 min</div>
+      </div>
+      <div class="entries" id="entries"></div>
+
+      <div class="toolbar">
+        <button class="primary" id="exportJson" type="button">Export backup</button>
+        <button id="exportCsv" type="button">Export CSV</button>
+        <label class="file-label">Import backup<input id="importFile" type="file" accept=".json,application/json"></label>
+        <button class="danger" id="clearData" type="button">Clear phone data</button>
+      </div>
+      <p class="note">
+        Data is stored locally in this browser on this device. Export a backup before clearing Safari data,
+        changing devices, or removing the Home Screen app.
+      </p>
+    </section>
+  </main>
+
+  <dialog id="clearDialog">
+    <h3>Clear all local records?</h3>
+    <p>This removes the full master ledger from this browser. Export a backup first.</p>
+    <menu>
+      <button class="small-button" id="cancelClear" type="button">Cancel</button>
+      <button class="small-button danger" id="confirmClear" type="button">Clear everything</button>
+    </menu>
+  </dialog>
+
+<script>
+(() => {
+  "use strict";
+
+  const STORAGE_KEY = "stolen-minutes-ledger-v1";
+  const ACTIVE_KEY = "stolen-minutes-active-v1";
+
+  const $ = (id) => document.getElementById(id);
+  const recordButton = $("recordButton");
+  const buttonLabel = $("buttonLabel");
+  const activityLabel = $("activityLabel");
+  const timerEl = $("timer");
+  const statusEl = $("status");
+  const fallback = $("fallback");
+  const activityInput = $("activityInput");
+  const entriesEl = $("entries");
+  const todayTotalEl = $("todayTotal");
+
+  let ledger = loadJson(STORAGE_KEY, []);
+  let active = loadJson(ACTIVE_KEY, null);
+  let ticker = null;
+  let recognition = null;
+
+  function loadJson(key, fallbackValue) {
+    try {
+      const value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : fallbackValue;
+    } catch {
+      return fallbackValue;
+    }
+  }
+
+  function saveLedger() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ledger));
+  }
+
+  function saveActive() {
+    if (active) localStorage.setItem(ACTIVE_KEY, JSON.stringify(active));
+    else localStorage.removeItem(ACTIVE_KEY);
+  }
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+
+  function formatElapsed(ms) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+
+  function formatDuration(ms) {
+    const mins = Math.max(1, Math.round(ms / 60000));
+    if (mins < 60) return `${mins} min`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m ? `${h} h ${m} min` : `${h} h`;
+  }
+
+  function localDateKey(date) {
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+  }
+
+  function formatTime(iso) {
+    return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+
+  function setTodayLabel() {
+    $("todayLabel").textContent = new Date().toLocaleDateString([], {
+      weekday: "long", day: "numeric", month: "long", year: "numeric"
+    });
+  }
+
+  function render() {
+    setTodayLabel();
+
+    if (active) {
+      recordButton.classList.add("running");
+      recordButton.setAttribute("aria-label", "Stop activity");
+      buttonLabel.textContent = "STOP";
+      activityLabel.textContent = active.activity || "Listening…";
+      statusEl.textContent = active.activity ? `Started ${formatTime(active.startedAt)}` : "Listening for activity…";
+      startTicker();
+    } else {
+      recordButton.classList.remove("running");
+      recordButton.setAttribute("aria-label", "Start activity");
+      buttonLabel.textContent = "START";
+      activityLabel.textContent = "Press, then name the activity";
+      timerEl.textContent = "00:00:00";
+      statusEl.textContent = "Ready";
+      stopTicker();
+    }
+
+    const today = localDateKey(new Date());
+    const todaysEntries = ledger
+      .filter(x => localDateKey(new Date(x.startedAt)) === today)
+      .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+
+    const totalMs = todaysEntries.reduce((sum, x) => sum + x.elapsedMs, 0);
+    todayTotalEl.textContent = formatDuration(totalMs).replace("1 min", totalMs === 0 ? "0 min" : "1 min");
+
+    if (!todaysEntries.length) {
+      entriesEl.innerHTML = '<div class="empty">No completed activities today.</div>';
+      return;
+    }
+
+    entriesEl.innerHTML = todaysEntries.map(x => `
+      <article class="entry">
+        <div class="entry-title">${escapeHtml(x.activity)}</div>
+        <div class="entry-duration">${formatDuration(x.elapsedMs)}</div>
+        <div class="entry-meta">${formatTime(x.startedAt)}–${formatTime(x.endedAt)} · ${formatElapsed(x.elapsedMs)}</div>
+      </article>
+    `).join("");
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, ch => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+    }[ch]));
+  }
+
+  function startTicker() {
+    stopTicker();
+    const update = () => {
+      if (active) timerEl.textContent = formatElapsed(Date.now() - new Date(active.startedAt).getTime());
+    };
+    update();
+    ticker = setInterval(update, 1000);
+  }
+
+  function stopTicker() {
+    if (ticker) clearInterval(ticker);
+    ticker = null;
+  }
+
+  function startActivity() {
+    active = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+      activity: "",
+      startedAt: new Date().toISOString()
+    };
+    saveActive();
+    render();
+    captureActivity();
+  }
+
+  function stopActivity() {
+    if (!active) return;
+    const endedAt = new Date();
+    const startedAt = new Date(active.startedAt);
+    const elapsedMs = Math.max(1000, endedAt - startedAt);
+
+    ledger.push({
+      id: active.id,
+      activity: active.activity || "Unlabelled activity",
+      startedAt: active.startedAt,
+      endedAt: endedAt.toISOString(),
+      elapsedMs
+    });
+
+    active = null;
+    saveLedger();
+    saveActive();
+    fallback.classList.remove("show");
+    render();
+  }
+
+  function captureActivity() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showTextFallback("Voice recognition is unavailable here. Type the activity.");
+      return;
+    }
+
+    try {
+      recognition = new SpeechRecognition();
+      recognition.lang = navigator.language || "en-AU";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        transcript = transcript.trim();
+        if (transcript) {
+          active.activity = transcript;
+          saveActive();
+          activityLabel.textContent = transcript;
+          statusEl.textContent = `Started ${formatTime(active.startedAt)}`;
+        }
+      };
+
+      recognition.onerror = () => {
+        if (!active?.activity) showTextFallback("I could not hear the activity. Type it below.");
+      };
+
+      recognition.onend = () => {
+        if (active && !active.activity) showTextFallback("No activity captured. Type it below.");
+      };
+
+      recognition.start();
+    } catch {
+      showTextFallback("Voice recognition could not start. Type the activity.");
+    }
+  }
+
+  function showTextFallback(message) {
+    statusEl.textContent = message;
+    fallback.classList.add("show");
+    activityInput.focus();
+  }
+
+  function applyTypedActivity() {
+    const value = activityInput.value.trim();
+    if (!active || !value) return;
+    active.activity = value;
+    saveActive();
+    activityInput.value = "";
+    fallback.classList.remove("show");
+    render();
+  }
+
+  function download(name, type, content) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportBackup() {
+    const payload = {
+      app: "Stolen Minutes",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      entries: ledger
+    };
+    download(`stolen-minutes-${localDateKey(new Date())}.json`, "application/json", JSON.stringify(payload, null, 2));
+  }
+
+  function exportCsv() {
+    const rows = [["activity","start_date","start_time","end_date","end_time","elapsed_seconds","elapsed_minutes"]];
+    [...ledger].sort((a,b) => new Date(a.startedAt)-new Date(b.startedAt)).forEach(x => {
+      const s = new Date(x.startedAt), e = new Date(x.endedAt);
+      rows.push([
+        x.activity,
+        localDateKey(s),
+        s.toLocaleTimeString([], {hour12:false}),
+        localDateKey(e),
+        e.toLocaleTimeString([], {hour12:false}),
+        Math.round(x.elapsedMs/1000),
+        (x.elapsedMs/60000).toFixed(2)
+      ]);
+    });
+    const csv = rows.map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+    download(`stolen-minutes-${localDateKey(new Date())}.csv`, "text/csv;charset=utf-8", csv);
+  }
+
+  async function importBackup(file) {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const incoming = Array.isArray(parsed) ? parsed : parsed.entries;
+      if (!Array.isArray(incoming)) throw new Error("No entries array");
+      const valid = incoming.filter(x =>
+        x && typeof x.activity === "string" &&
+        x.startedAt && x.endedAt && Number.isFinite(Number(x.elapsedMs))
+      ).map(x => ({...x, elapsedMs: Number(x.elapsedMs)}));
+
+      const byId = new Map(ledger.map(x => [x.id, x]));
+      valid.forEach(x => byId.set(x.id || `${x.startedAt}-${x.activity}`, x));
+      ledger = [...byId.values()];
+      saveLedger();
+      render();
+      statusEl.textContent = `Imported ${valid.length} record${valid.length === 1 ? "" : "s"}.`;
+    } catch {
+      statusEl.textContent = "Import failed: this is not a valid Stolen Minutes backup.";
+    }
+  }
+
+  recordButton.addEventListener("click", () => active ? stopActivity() : startActivity());
+  $("useTextButton").addEventListener("click", applyTypedActivity);
+  activityInput.addEventListener("keydown", e => { if (e.key === "Enter") applyTypedActivity(); });
+  $("exportJson").addEventListener("click", exportBackup);
+  $("exportCsv").addEventListener("click", exportCsv);
+  $("importFile").addEventListener("change", e => {
+    const file = e.target.files?.[0];
+    if (file) importBackup(file);
+    e.target.value = "";
+  });
+
+  const clearDialog = $("clearDialog");
+  $("clearData").addEventListener("click", () => clearDialog.showModal());
+  $("cancelClear").addEventListener("click", () => clearDialog.close());
+  $("confirmClear").addEventListener("click", () => {
+    ledger = [];
+    active = null;
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_KEY);
+    clearDialog.close();
+    render();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) render();
+  });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

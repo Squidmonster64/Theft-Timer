@@ -1,0 +1,12 @@
+{
+  "name": "theft-timer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Stolen Minutes progressive web app",
+  "scripts": {
+    "start": "serve -s . -l $PORT"
+  },
+  "dependencies": {
+    "serve": "^14.2.4"
+  }
+}
