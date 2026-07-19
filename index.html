@@ -205,6 +205,23 @@
     dialog::backdrop { background: rgba(0,0,0,.35); }
     dialog h3 { margin-top: 0; }
     dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin-bottom: 0; }
+
+    .cloud-card {
+      margin: 0 0 18px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.62);
+      border: 1px solid rgba(0,0,0,.06);
+    }
+    .cloud-row { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+    .cloud-row input {
+      flex: 1 1 220px; min-width: 0; border: 1px solid #cfcfcf;
+      border-radius: 10px; padding: 11px 12px; background: white;
+    }
+    .cloud-status { margin: 8px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.4; }
+    .sync-dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#a3a3a3; margin-right:6px; }
+    .sync-dot.ok { background: var(--green); }
+    .sync-dot.warn { background: #b45309; }
     @media (max-width: 520px) {
       .app { padding-left: 12px; padding-right: 12px; }
       .recorder { padding-left: 14px; padding-right: 14px; }
@@ -219,6 +236,19 @@
       <h1>Stolen Minutes</h1>
       <div class="date" id="todayLabel"></div>
     </header>
+
+    <section class="cloud-card" aria-label="Cloud sync">
+      <div class="cloud-row" id="signedOutControls">
+        <input id="emailInput" type="email" autocomplete="email" placeholder="Email for secure sync">
+        <button class="small-button" id="sendLinkButton" type="button">Email login link</button>
+      </div>
+      <div class="cloud-row" id="signedInControls" hidden>
+        <strong id="accountLabel">Signed in</strong>
+        <button class="small-button" id="syncButton" type="button">Sync now</button>
+        <button class="small-button" id="signOutButton" type="button">Sign out</button>
+      </div>
+      <p class="cloud-status"><span class="sync-dot" id="syncDot"></span><span id="cloudStatus">Local-only mode until Supabase is configured and you sign in.</span></p>
+    </section>
 
     <section class="recorder" aria-labelledby="recorderTitle">
       <p class="eyebrow" id="recorderTitle">Time auditor</p>
@@ -252,8 +282,8 @@
         <button class="danger" id="clearData" type="button">Clear phone data</button>
       </div>
       <p class="note">
-        Data is stored locally in this browser on this device. Export a backup before clearing Safari data,
-        changing devices, or removing the Home Screen app.
+        Entries are cached locally for offline use and synced to your private Supabase account when signed in.
+        Export remains available as an additional portable backup.
       </p>
     </section>
   </main>
@@ -267,325 +297,118 @@
     </menu>
   </dialog>
 
-<script>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "/config.js";
+
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "stolen-minutes-ledger-v1";
+  const STORAGE_KEY = "stolen-minutes-ledger-v2";
+  const LEGACY_STORAGE_KEY = "stolen-minutes-ledger-v1";
   const ACTIVE_KEY = "stolen-minutes-active-v1";
+  const configured = SUPABASE_URL?.startsWith("https://") && SUPABASE_PUBLISHABLE_KEY && !SUPABASE_PUBLISHABLE_KEY.includes("PASTE_");
+  const supabase = configured ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  }) : null;
 
-  const $ = (id) => document.getElementById(id);
-  const recordButton = $("recordButton");
-  const buttonLabel = $("buttonLabel");
-  const activityLabel = $("activityLabel");
-  const timerEl = $("timer");
-  const statusEl = $("status");
-  const fallback = $("fallback");
-  const activityInput = $("activityInput");
-  const entriesEl = $("entries");
-  const todayTotalEl = $("todayTotal");
+  const $ = id => document.getElementById(id);
+  const recordButton=$("recordButton"), buttonLabel=$("buttonLabel"), activityLabel=$("activityLabel");
+  const timerEl=$("timer"), statusEl=$("status"), fallback=$("fallback"), activityInput=$("activityInput");
+  const entriesEl=$("entries"), todayTotalEl=$("todayTotal"), cloudStatus=$("cloudStatus"), syncDot=$("syncDot");
+  let ledger=loadJson(STORAGE_KEY, loadJson(LEGACY_STORAGE_KEY, []));
+  let active=loadJson(ACTIVE_KEY,null), ticker=null, recognition=null, session=null, syncing=false;
 
-  let ledger = loadJson(STORAGE_KEY, []);
-  let active = loadJson(ACTIVE_KEY, null);
-  let ticker = null;
-  let recognition = null;
+  function loadJson(key,fallbackValue){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallbackValue}catch{return fallbackValue}}
+  function saveLedger(){localStorage.setItem(STORAGE_KEY,JSON.stringify(ledger))}
+  function saveActive(){active?localStorage.setItem(ACTIVE_KEY,JSON.stringify(active)):localStorage.removeItem(ACTIVE_KEY)}
+  const pad=n=>String(n).padStart(2,"0");
+  function formatElapsed(ms){const t=Math.max(0,Math.floor(ms/1000));return `${pad(Math.floor(t/3600))}:${pad(Math.floor((t%3600)/60))}:${pad(t%60)}`}
+  function formatDuration(ms){const mins=Math.max(1,Math.round(ms/60000));if(ms===0)return"0 min";if(mins<60)return`${mins} min`;const h=Math.floor(mins/60),m=mins%60;return m?`${h} h ${m} min`:`${h} h`}
+  function localDateKey(d){return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+  function formatTime(iso){return new Date(iso).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}
+  function setTodayLabel(){$("todayLabel").textContent=new Date().toLocaleDateString([],{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+  function escapeHtml(v){return String(v).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]))}
 
-  function loadJson(key, fallbackValue) {
-    try {
-      const value = localStorage.getItem(key);
-      return value ? JSON.parse(value) : fallbackValue;
-    } catch {
-      return fallbackValue;
-    }
+  function setCloud(message,state=""){
+    cloudStatus.textContent=message; syncDot.className=`sync-dot ${state}`;
+  }
+  function renderAuth(){
+    $("signedOutControls").hidden=!!session;
+    $("signedInControls").hidden=!session;
+    $("accountLabel").textContent=session?.user?.email?session.user.email:"Signed in";
+    if(!configured)setCloud("Supabase is not configured yet. Add the project URL and publishable key to config.js.","warn");
+    else if(!navigator.onLine)setCloud("Offline. Entries are safe locally and will sync when online.","warn");
+    else if(session)setCloud("Signed in. Cloud sync is active.","ok");
+    else setCloud("Sign in by email to enable private cloud sync.");
   }
 
-  function saveLedger() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ledger));
+  function render(){
+    setTodayLabel(); renderAuth();
+    if(active){recordButton.classList.add("running");recordButton.setAttribute("aria-label","Stop activity");buttonLabel.textContent="STOP";activityLabel.textContent=active.activity||"Listening…";statusEl.textContent=active.activity?`Started ${formatTime(active.startedAt)}`:"Listening for activity…";startTicker()}
+    else{recordButton.classList.remove("running");recordButton.setAttribute("aria-label","Start activity");buttonLabel.textContent="START";activityLabel.textContent="Press, then name the activity";timerEl.textContent="00:00:00";statusEl.textContent="Ready";stopTicker()}
+    const today=localDateKey(new Date());
+    const items=ledger.filter(x=>localDateKey(new Date(x.startedAt))===today).sort((a,b)=>new Date(b.startedAt)-new Date(a.startedAt));
+    todayTotalEl.textContent=formatDuration(items.reduce((s,x)=>s+x.elapsedMs,0));
+    entriesEl.innerHTML=items.length?items.map(x=>`<article class="entry"><div class="entry-title">${escapeHtml(x.activity)}</div><div class="entry-duration">${formatDuration(x.elapsedMs)}</div><div class="entry-meta">${formatTime(x.startedAt)}–${formatTime(x.endedAt)} · ${formatElapsed(x.elapsedMs)}</div></article>`).join(""):'<div class="empty">No completed activities today.</div>';
+  }
+  function startTicker(){stopTicker();const u=()=>{if(active)timerEl.textContent=formatElapsed(Date.now()-new Date(active.startedAt).getTime())};u();ticker=setInterval(u,1000)}
+  function stopTicker(){if(ticker)clearInterval(ticker);ticker=null}
+  function startActivity(){active={id:crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`,activity:"",startedAt:new Date().toISOString()};saveActive();render();captureActivity()}
+  async function stopActivity(){
+    if(!active)return;const endedAt=new Date(),startedAt=new Date(active.startedAt),elapsedMs=Math.max(1000,endedAt-startedAt);
+    const entry={id:active.id,activity:active.activity||"Unlabelled activity",startedAt:active.startedAt,endedAt:endedAt.toISOString(),elapsedMs,updatedAt:new Date().toISOString()};
+    ledger.push(entry);active=null;saveLedger();saveActive();fallback.classList.remove("show");render();
+    if(session&&navigator.onLine) await syncCloud();
+  }
+  function captureActivity(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){showTextFallback("Voice recognition is unavailable here. Type the activity.");return}
+    try{recognition=new SR();recognition.lang=navigator.language||"en-AU";recognition.interimResults=true;recognition.continuous=false;recognition.maxAlternatives=1;
+      recognition.onresult=e=>{let t="";for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;t=t.trim();if(t){active.activity=t;saveActive();activityLabel.textContent=t;statusEl.textContent=`Started ${formatTime(active.startedAt)}`}};
+      recognition.onerror=()=>{if(!active?.activity)showTextFallback("I could not hear the activity. Type it below.")};recognition.onend=()=>{if(active&&!active.activity)showTextFallback("No activity captured. Type it below.")};recognition.start()
+    }catch{showTextFallback("Voice recognition could not start. Type the activity.")}
+  }
+  function showTextFallback(m){statusEl.textContent=m;fallback.classList.add("show");activityInput.focus()}
+  function applyTypedActivity(){const v=activityInput.value.trim();if(!active||!v)return;active.activity=v;saveActive();activityInput.value="";fallback.classList.remove("show");render()}
+  function download(name,type,content){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+  function exportBackup(){download(`stolen-minutes-${localDateKey(new Date())}.json`,"application/json",JSON.stringify({app:"Stolen Minutes",version:2,exportedAt:new Date().toISOString(),entries:ledger},null,2))}
+  function exportCsv(){const rows=[["activity","start_date","start_time","end_date","end_time","elapsed_seconds","elapsed_minutes"]];[...ledger].sort((a,b)=>new Date(a.startedAt)-new Date(b.startedAt)).forEach(x=>{const s=new Date(x.startedAt),e=new Date(x.endedAt);rows.push([x.activity,localDateKey(s),s.toLocaleTimeString([],{hour12:false}),localDateKey(e),e.toLocaleTimeString([],{hour12:false}),Math.round(x.elapsedMs/1000),(x.elapsedMs/60000).toFixed(2)])});download(`stolen-minutes-${localDateKey(new Date())}.csv`,"text/csv;charset=utf-8",rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n"))}
+  async function importBackup(file){try{const parsed=JSON.parse(await file.text()),incoming=Array.isArray(parsed)?parsed:parsed.entries;if(!Array.isArray(incoming))throw Error();const valid=incoming.filter(x=>x&&typeof x.activity==="string"&&x.startedAt&&x.endedAt&&Number.isFinite(Number(x.elapsedMs))).map(x=>({...x,id:x.id||crypto.randomUUID(),elapsedMs:Number(x.elapsedMs),updatedAt:x.updatedAt||new Date().toISOString()}));const byId=new Map(ledger.map(x=>[x.id,x]));valid.forEach(x=>byId.set(x.id,x));ledger=[...byId.values()];saveLedger();render();statusEl.textContent=`Imported ${valid.length} record${valid.length===1?"":"s"}.`;if(session)await syncCloud()}catch{statusEl.textContent="Import failed: invalid Stolen Minutes backup."}}
+
+  async function sendMagicLink(){
+    if(!configured){setCloud("Configure config.js first.","warn");return}
+    const email=$("emailInput").value.trim();if(!email){setCloud("Enter your email address.","warn");return}
+    setCloud("Sending secure login link…");
+    const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin}});
+    setCloud(error?`Login email failed: ${error.message}`:"Check your email and open the login link on this device.",error?"warn":"ok");
+  }
+  async function syncCloud(){
+    if(!supabase||!session||syncing||!navigator.onLine)return;
+    syncing=true;setCloud("Syncing…");
+    try{
+      const rows=ledger.map(x=>({id:x.id,user_id:session.user.id,activity:x.activity,started_at:x.startedAt,ended_at:x.endedAt,elapsed_ms:x.elapsedMs,updated_at:x.updatedAt||x.endedAt}));
+      if(rows.length){const {error}=await supabase.from("activities").upsert(rows,{onConflict:"id"});if(error)throw error}
+      const {data,error}=await supabase.from("activities").select("id,activity,started_at,ended_at,elapsed_ms,updated_at").order("started_at",{ascending:true});if(error)throw error;
+      const map=new Map(ledger.map(x=>[x.id,x]));(data||[]).forEach(r=>map.set(r.id,{id:r.id,activity:r.activity,startedAt:r.started_at,endedAt:r.ended_at,elapsedMs:Number(r.elapsed_ms),updatedAt:r.updated_at}));ledger=[...map.values()];saveLedger();render();setCloud(`Synced ${ledger.length} record${ledger.length===1?"":"s"}.`,"ok");
+    }catch(e){setCloud(`Sync failed: ${e.message||e}`,"warn")}finally{syncing=false}
+  }
+  async function signOut(){if(!supabase)return;await supabase.auth.signOut({scope:"local"});session=null;render()}
+  async function initAuth(){
+    if(!supabase){render();return}
+    const {data}=await supabase.auth.getSession();session=data.session;render();if(session)await syncCloud();
+    supabase.auth.onAuthStateChange((_event,newSession)=>{session=newSession;render();if(session)setTimeout(syncCloud,0)});
   }
 
-  function saveActive() {
-    if (active) localStorage.setItem(ACTIVE_KEY, JSON.stringify(active));
-    else localStorage.removeItem(ACTIVE_KEY);
-  }
-
-  function pad(n) { return String(n).padStart(2, "0"); }
-
-  function formatElapsed(ms) {
-    const total = Math.max(0, Math.floor(ms / 1000));
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    return `${pad(h)}:${pad(m)}:${pad(s)}`;
-  }
-
-  function formatDuration(ms) {
-    const mins = Math.max(1, Math.round(ms / 60000));
-    if (mins < 60) return `${mins} min`;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return m ? `${h} h ${m} min` : `${h} h`;
-  }
-
-  function localDateKey(date) {
-    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
-  }
-
-  function formatTime(iso) {
-    return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  }
-
-  function setTodayLabel() {
-    $("todayLabel").textContent = new Date().toLocaleDateString([], {
-      weekday: "long", day: "numeric", month: "long", year: "numeric"
-    });
-  }
-
-  function render() {
-    setTodayLabel();
-
-    if (active) {
-      recordButton.classList.add("running");
-      recordButton.setAttribute("aria-label", "Stop activity");
-      buttonLabel.textContent = "STOP";
-      activityLabel.textContent = active.activity || "Listening…";
-      statusEl.textContent = active.activity ? `Started ${formatTime(active.startedAt)}` : "Listening for activity…";
-      startTicker();
-    } else {
-      recordButton.classList.remove("running");
-      recordButton.setAttribute("aria-label", "Start activity");
-      buttonLabel.textContent = "START";
-      activityLabel.textContent = "Press, then name the activity";
-      timerEl.textContent = "00:00:00";
-      statusEl.textContent = "Ready";
-      stopTicker();
-    }
-
-    const today = localDateKey(new Date());
-    const todaysEntries = ledger
-      .filter(x => localDateKey(new Date(x.startedAt)) === today)
-      .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
-
-    const totalMs = todaysEntries.reduce((sum, x) => sum + x.elapsedMs, 0);
-    todayTotalEl.textContent = formatDuration(totalMs).replace("1 min", totalMs === 0 ? "0 min" : "1 min");
-
-    if (!todaysEntries.length) {
-      entriesEl.innerHTML = '<div class="empty">No completed activities today.</div>';
-      return;
-    }
-
-    entriesEl.innerHTML = todaysEntries.map(x => `
-      <article class="entry">
-        <div class="entry-title">${escapeHtml(x.activity)}</div>
-        <div class="entry-duration">${formatDuration(x.elapsedMs)}</div>
-        <div class="entry-meta">${formatTime(x.startedAt)}–${formatTime(x.endedAt)} · ${formatElapsed(x.elapsedMs)}</div>
-      </article>
-    `).join("");
-  }
-
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, ch => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-    }[ch]));
-  }
-
-  function startTicker() {
-    stopTicker();
-    const update = () => {
-      if (active) timerEl.textContent = formatElapsed(Date.now() - new Date(active.startedAt).getTime());
-    };
-    update();
-    ticker = setInterval(update, 1000);
-  }
-
-  function stopTicker() {
-    if (ticker) clearInterval(ticker);
-    ticker = null;
-  }
-
-  function startActivity() {
-    active = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-      activity: "",
-      startedAt: new Date().toISOString()
-    };
-    saveActive();
-    render();
-    captureActivity();
-  }
-
-  function stopActivity() {
-    if (!active) return;
-    const endedAt = new Date();
-    const startedAt = new Date(active.startedAt);
-    const elapsedMs = Math.max(1000, endedAt - startedAt);
-
-    ledger.push({
-      id: active.id,
-      activity: active.activity || "Unlabelled activity",
-      startedAt: active.startedAt,
-      endedAt: endedAt.toISOString(),
-      elapsedMs
-    });
-
-    active = null;
-    saveLedger();
-    saveActive();
-    fallback.classList.remove("show");
-    render();
-  }
-
-  function captureActivity() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      showTextFallback("Voice recognition is unavailable here. Type the activity.");
-      return;
-    }
-
-    try {
-      recognition = new SpeechRecognition();
-      recognition.lang = navigator.language || "en-AU";
-      recognition.interimResults = true;
-      recognition.continuous = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onresult = (event) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        transcript = transcript.trim();
-        if (transcript) {
-          active.activity = transcript;
-          saveActive();
-          activityLabel.textContent = transcript;
-          statusEl.textContent = `Started ${formatTime(active.startedAt)}`;
-        }
-      };
-
-      recognition.onerror = () => {
-        if (!active?.activity) showTextFallback("I could not hear the activity. Type it below.");
-      };
-
-      recognition.onend = () => {
-        if (active && !active.activity) showTextFallback("No activity captured. Type it below.");
-      };
-
-      recognition.start();
-    } catch {
-      showTextFallback("Voice recognition could not start. Type the activity.");
-    }
-  }
-
-  function showTextFallback(message) {
-    statusEl.textContent = message;
-    fallback.classList.add("show");
-    activityInput.focus();
-  }
-
-  function applyTypedActivity() {
-    const value = activityInput.value.trim();
-    if (!active || !value) return;
-    active.activity = value;
-    saveActive();
-    activityInput.value = "";
-    fallback.classList.remove("show");
-    render();
-  }
-
-  function download(name, type, content) {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
-  function exportBackup() {
-    const payload = {
-      app: "Stolen Minutes",
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      entries: ledger
-    };
-    download(`stolen-minutes-${localDateKey(new Date())}.json`, "application/json", JSON.stringify(payload, null, 2));
-  }
-
-  function exportCsv() {
-    const rows = [["activity","start_date","start_time","end_date","end_time","elapsed_seconds","elapsed_minutes"]];
-    [...ledger].sort((a,b) => new Date(a.startedAt)-new Date(b.startedAt)).forEach(x => {
-      const s = new Date(x.startedAt), e = new Date(x.endedAt);
-      rows.push([
-        x.activity,
-        localDateKey(s),
-        s.toLocaleTimeString([], {hour12:false}),
-        localDateKey(e),
-        e.toLocaleTimeString([], {hour12:false}),
-        Math.round(x.elapsedMs/1000),
-        (x.elapsedMs/60000).toFixed(2)
-      ]);
-    });
-    const csv = rows.map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
-    download(`stolen-minutes-${localDateKey(new Date())}.csv`, "text/csv;charset=utf-8", csv);
-  }
-
-  async function importBackup(file) {
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      const incoming = Array.isArray(parsed) ? parsed : parsed.entries;
-      if (!Array.isArray(incoming)) throw new Error("No entries array");
-      const valid = incoming.filter(x =>
-        x && typeof x.activity === "string" &&
-        x.startedAt && x.endedAt && Number.isFinite(Number(x.elapsedMs))
-      ).map(x => ({...x, elapsedMs: Number(x.elapsedMs)}));
-
-      const byId = new Map(ledger.map(x => [x.id, x]));
-      valid.forEach(x => byId.set(x.id || `${x.startedAt}-${x.activity}`, x));
-      ledger = [...byId.values()];
-      saveLedger();
-      render();
-      statusEl.textContent = `Imported ${valid.length} record${valid.length === 1 ? "" : "s"}.`;
-    } catch {
-      statusEl.textContent = "Import failed: this is not a valid Stolen Minutes backup.";
-    }
-  }
-
-  recordButton.addEventListener("click", () => active ? stopActivity() : startActivity());
-  $("useTextButton").addEventListener("click", applyTypedActivity);
-  activityInput.addEventListener("keydown", e => { if (e.key === "Enter") applyTypedActivity(); });
-  $("exportJson").addEventListener("click", exportBackup);
-  $("exportCsv").addEventListener("click", exportCsv);
-  $("importFile").addEventListener("change", e => {
-    const file = e.target.files?.[0];
-    if (file) importBackup(file);
-    e.target.value = "";
-  });
-
-  const clearDialog = $("clearDialog");
-  $("clearData").addEventListener("click", () => clearDialog.showModal());
-  $("cancelClear").addEventListener("click", () => clearDialog.close());
-  $("confirmClear").addEventListener("click", () => {
-    ledger = [];
-    active = null;
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(ACTIVE_KEY);
-    clearDialog.close();
-    render();
-  });
-
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) render();
-  });
-
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
-  }
-
-  render();
+  recordButton.addEventListener("click",()=>active?stopActivity():startActivity());
+  $("useTextButton").addEventListener("click",applyTypedActivity);activityInput.addEventListener("keydown",e=>{if(e.key==="Enter")applyTypedActivity()});
+  $("exportJson").addEventListener("click",exportBackup);$("exportCsv").addEventListener("click",exportCsv);
+  $("importFile").addEventListener("change",e=>{const f=e.target.files?.[0];if(f)importBackup(f);e.target.value=""});
+  $("sendLinkButton").addEventListener("click",sendMagicLink);$("syncButton").addEventListener("click",syncCloud);$("signOutButton").addEventListener("click",signOut);
+  const clearDialog=$("clearDialog");$("clearData").addEventListener("click",()=>clearDialog.showModal());$("cancelClear").addEventListener("click",()=>clearDialog.close());
+  $("confirmClear").addEventListener("click",()=>{ledger=[];active=null;localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(LEGACY_STORAGE_KEY);localStorage.removeItem(ACTIVE_KEY);clearDialog.close();render()});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden){render();if(session)syncCloud()}});window.addEventListener("online",()=>{render();if(session)syncCloud()});window.addEventListener("offline",render);
+  if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
+  render();initAuth();
 })();
 </script>
 </body>

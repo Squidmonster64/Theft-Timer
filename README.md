@@ -1,46 +1,50 @@
-# Theft Timer / Stolen Minutes
+# Theft Timer / Stolen Minutes — Supabase edition
 
-A one-button Progressive Web App for recording where time disappears.
+This build keeps an offline local cache and synchronises completed activities to a private Supabase table after email magic-link sign-in.
 
-## Core use
+## 1. Create/configure the Supabase project
 
-1. Press the red button.
-2. Say or type the activity.
-3. Press again when finished.
-4. The app records start time, finish time, elapsed time, and today's cumulative total.
+1. Open the project in Supabase.
+2. Open **SQL Editor**.
+3. Paste and run `supabase-schema.sql`.
+4. Open **Authentication → URL Configuration**.
+5. Set **Site URL** to `https://theft-timer-production.up.railway.app`.
+6. Add the same address under **Redirect URLs**.
 
-Data is stored locally on the device. Export a JSON backup periodically.
+## 2. Add browser-safe project credentials
 
-## Deploy on Railway
+Open **Project Settings → API** and copy:
 
-1. Push this folder to `Squidmonster64/Theft-Timer`.
-2. In Railway, choose **New Project → Deploy from GitHub repo**.
-3. Select `Theft-Timer`.
-4. Railway detects `package.json` and runs `npm start`.
-5. Generate a Railway domain.
-6. Open that HTTPS address in Safari on iPhone.
-7. Use **Share → Add to Home Screen**.
+- Project URL
+- Publishable key (or legacy `anon` key)
 
-## Local test
+Edit `config.js`. Never use the `service_role` key in this app.
 
-From this folder:
+## 3. Push update
 
 ```bash
-npm install
-npm start
+cd ~/Downloads/Theft-Timer
+# Copy this bundle's files into the repository first
+git add .
+git commit -m "Add secure Supabase cloud sync"
+git push
 ```
 
-Then open the local address printed in Terminal.
+Railway will redeploy automatically.
 
-## Files
+## 4. First login
 
-- `index.html` — complete application
-- `manifest.json` — PWA metadata
-- `sw.js` — offline cache
-- `icons/` — Home Screen icons
-- `package.json` — static server for Railway
-- `railway.json` — Railway deployment configuration
+1. Open the Railway URL.
+2. Enter your email.
+3. Press **Email login link**.
+4. Open the Supabase email link.
+5. Press **Sync now**.
 
-## Notes
+Existing local records are uploaded on the first sync.
 
-Speech recognition availability varies by browser and iOS version. Typed activity entry remains available as a fallback.
+## Storage model
+
+- Supabase is the durable cloud record.
+- Local Storage is retained as an offline cache.
+- Row Level Security permits each authenticated user to access only their own records.
+- JSON and CSV exports remain available.

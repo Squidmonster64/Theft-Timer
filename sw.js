@@ -1,8 +1,9 @@
-const CACHE = "stolen-minutes-v1";
+const CACHE = "stolen-minutes-v2";
 const ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
+  "/config.js",
   "/icons/icon-192.png",
   "/icons/icon-512.png"
 ];
