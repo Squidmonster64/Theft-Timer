@@ -1,7 +1,7 @@
 {
-  "name": "Stolen Minutes",
-  "short_name": "Theft Timer",
-  "description": "A one-button, voice-labelled activity timer.",
+  "name": "Stolen Minutes + Diabetes",
+  "short_name": "Stolen Minutes",
+  "description": "Offline-first timer, fragments reader and simple spoken diabetes record.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

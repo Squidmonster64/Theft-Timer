@@ -1,43 +1,63 @@
-# Stolen Minutes + Fragments
+# Stolen Minutes + Fragments + Diabetes
 
-One installable PWA with two tools:
+A compact offline-first PWA deployed as static files on Railway and synchronized to Supabase.
 
-- **Stolen Minutes** — time activity sessions.
-- **Fragments** — type, paste, or dictate text using the Apple keyboard microphone.
+## Diabetes interface
 
-Both use the same Supabase login and project, with separate `activities` and `fragments` tables. Both retain a local offline cache.
+The Diabetes tab is deliberately reduced to three large speech buttons:
 
-## Deploy update
+- **Glucose** — speak a reading such as “6.8 before breakfast.” The event time is the instant the button was pressed.
+- **Food** — speak a meal such as “two eggs and toast.” Personal food memory is searched first, followed by a small built-in common-food carbohydrate reference. Unknown foods are saved and marked for review.
+- **Event** — speak an event and its time, such as “I had a hypo at 3am.” The time is interpreted from the transcription rather than the device clock.
 
-1. In Supabase, open **SQL Editor**.
-2. Run the complete `supabase-schema.sql` file. It is safe to run again and adds the `fragments` table and Row Level Security policies.
-3. Copy this folder over the existing Theft-Timer repository.
-4. Commit and push to GitHub. Railway should redeploy automatically.
-5. On iPhone, fully close and reopen the installed PWA. If the old interface remains, remove it from the Home Screen and add it again from Safari.
+Every record is written to localStorage and IndexedDB before cloud synchronization is attempted. Offline deletions use local tombstones so deleted health records and food memories do not return on a later sync.
 
-## Supabase configuration
+## Personal food memory
 
-`config.js` already contains the configured project URL and publishable key. Never place a Supabase service-role key in this app.
+Foods can be edited or deleted. Deleting a food memory leaves historical meal records unchanged.
 
-## Fragment reader/editor
+Carbohydrate values are estimates and can be corrected in the food-memory editor. They are not medical advice or a substitute for checking product labels and clinician guidance.
 
-Saved fragments are tappable and open in a full reader/editor. You can edit title, body and tags; copy the body; export one fragment; search all fragments; or delete with confirmation.
+## Storage protection
 
-## Analysis export
+The app checks browser storage usage with the Storage Manager API. When storage is near its available quota, or a local write fails, it displays an **Export recommended** warning with a direct JSON export button.
 
-Use **Export Analysis JSON** to create a structured file containing fragments and timer records for use in another ChatGPT conversation or analysis tool. See `ANALYSIS-ACCESS.md` for integration options and security constraints.
+## Supabase setup
 
-## Diabetes tab
+Run the complete `supabase-schema.sql` in the Supabase SQL Editor. It is idempotent and can be run again after an earlier version.
 
-Version 5 adds a local-first Diabetes companion tab to the existing app. It supports:
+The schema creates:
 
-- rapid natural-language review for glucose, meals and medication
-- manual health event entry
-- editable/deletable health timeline
-- persistent personal food memory with aliases, usual portions and carbohydrate estimates
-- JSON and CSV health exports
-- private Supabase sync through `health_events` and `foods`
+- `activities`
+- `fragments`
+- `health_events`
+- `foods`
+- `health_event_feed` private view
+- `health_daily_summary` private view
+- `food_memory_summary` private view
 
-Before deploying this version, run the complete `supabase-schema.sql` in the Supabase SQL Editor. The script is idempotent and preserves the existing `activities` and `fragments` tables.
+All base tables use authenticated per-user Row Level Security.
 
-This is a record-keeping tool, not medical advice or a substitute for clinical care.
+## External analysis
+
+See:
+
+- `ANALYSIS-ACCESS.md`
+- `analysis-queries.sql`
+
+The database can be inspected through Supabase Table Editor and SQL Editor, or queried by an authenticated external notebook, spreadsheet integration, BI tool, REST client, GraphQL client, or Supabase client library.
+
+Never place the Supabase secret/service-role key in the PWA or a public repository.
+
+## Local testing
+
+```bash
+npm install
+npm start
+```
+
+The server defaults to port 3000 locally and uses Railway's `PORT` value in deployment.
+
+## Deployment
+
+Commit all project files to the GitHub repository and deploy the selected branch through Railway. The service worker uses network-first updates for same-origin app files to reduce stale-PWA problems.

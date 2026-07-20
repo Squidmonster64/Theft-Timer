@@ -1,49 +1,35 @@
-# Analysis access design
+# External analysis access
 
-## Recommended now: explicit portable export
+The health data is stored in Supabase Postgres and remains protected by the existing user-based Row Level Security policies.
 
-Use **Export Analysis JSON**. It creates one structured file containing the signed-in user's locally available:
+## Fastest inspection
 
-- fragments, including IDs, titles, bodies, tags and timestamps
-- timer activities, including labels, start/end times and durations
-- schema version and export timestamp
+Open the Supabase project, then use:
 
-Upload that JSON file to another ChatGPT conversation, NotebookLM, a local script, or another analysis program. This is the safest first stage because access is deliberate, reviewable and revocable: no external tool receives permanent database credentials.
+- **Table Editor** for individual records in `health_events` and `foods`.
+- **SQL Editor** for ad-hoc analysis.
+- `analysis-queries.sql` for ready-made queries.
 
-## Useful analyses
+The updated schema also creates three private views:
 
-- recurring themes and repeated concerns
-- changes in mood, priorities or language over time
-- links between fragments and where time was spent
-- unfinished ideas and repeated intentions
-- topic clusters and emerging projects
-- weekly/monthly summaries
-- contradictions, decisions and changes of mind
-- suggested tags and titles
+- `health_event_feed` — flattened event records, including carbohydrate totals and interpreted speech time.
+- `health_daily_summary` — daily glucose and carbohydrate aggregates in `Australia/Perth` time.
+- `food_memory_summary` — personal food memory and usage counts.
 
-## Later option: a separate private analysis PWA
+## External tools
 
-Build a second PWA using the same Supabase Auth project. It should sign the user in normally and read only rows permitted by existing Row Level Security. Do not embed a Supabase service-role key in any browser app.
+Authenticated tools can query the views through the Supabase REST API, GraphQL API, Supabase JavaScript/Python clients, or a direct Postgres connection. Suitable tools include a private notebook, spreadsheet script, Metabase, Power BI, or a custom analysis service.
 
-Recommended architecture:
+Use a signed-in user's JWT when the tool should see only that user's rows. A backend service may use the secret/service-role key for controlled administration, but that key must stay on a secure server and must never be placed in the PWA, Safari, a public repository, or a spreadsheet shared with others.
 
-1. User signs in with Supabase magic link.
-2. Existing RLS limits reads to `auth.uid() = user_id`.
-3. The analysis PWA reads `fragments` and `activities` with the user's session token.
-4. Pattern analysis either runs locally in the browser or sends selected records to a secured server endpoint after explicit consent.
-5. Store generated analyses in a separate `analyses` table linked to the same user ID.
+## Interpretation layer
 
-## Automated AI interpretation
+For automated interpretation, create a server-side Supabase Edge Function or Railway endpoint that:
 
-For automated summaries, use a server-side endpoint or Supabase Edge Function. It can:
+1. Authenticates the user.
+2. Queries `health_event_feed` or `health_daily_summary`.
+3. Calculates trends and flags.
+4. Optionally sends a minimal, consented dataset to an analysis model.
+5. Returns an explanation to the PWA without exposing database secrets.
 
-- accept a date range and selected fragments
-- call an AI model using a server-held API key
-- return structured findings
-- optionally save the result in an `analyses` table
-
-Never place an OpenAI API key or Supabase service-role key in `index.html`, `config.js`, or any client-side PWA file.
-
-## Direct database access for trusted scripts
-
-A personal Python or Node script can sign in as the user and query through RLS. For unattended server jobs, use a tightly controlled backend with secrets stored in environment variables. Prefer scoped user access rather than service-role access wherever possible.
+Automated summaries should be treated as informational. They are not a replacement for a glucose meter, clinician, or emergency advice.

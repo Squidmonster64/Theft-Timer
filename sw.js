@@ -1,7 +1,8 @@
-const CACHE = "stolen-minutes-v5-diabetes";
+const CACHE = "stolen-minutes-v8-simple-diabetes";
 const ASSETS = [
   "/",
   "/index.html",
+  "/app.js",
   "/manifest.json",
   "/config.js",
   "/icons/icon-192.png",
@@ -23,14 +24,21 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        const copy = response.clone();
-        caches.open(CACHE).then(cache => cache.put(event.request, copy));
+    fetch(event.request)
+      .then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(event.request, copy));
+        }
         return response;
-      }).catch(() => caches.match("/index.html"));
-    })
+      })
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        return cached || caches.match("/index.html");
+      })
   );
 });
