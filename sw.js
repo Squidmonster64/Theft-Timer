@@ -1,4 +1,4 @@
-const CACHE = "stolen-minutes-v4-supabase-configured";
+const CACHE = "stolen-minutes-v5-diabetes";
 const ASSETS = [
   "/",
   "/index.html",

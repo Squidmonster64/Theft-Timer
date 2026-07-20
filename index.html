@@ -1,497 +1,84 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#991b1b">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Stolen Minutes">
-  <link rel="manifest" href="/manifest.json">
-  <title>Stolen Minutes</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --ink: #171717;
-      --muted: #737373;
-      --line: #e5e5e5;
-      --paper: #f5f1e9;
-      --card: #fffdf8;
-      --red: #b42318;
-      --red-dark: #7f1d1d;
-      --green: #166534;
-      --shadow: 0 16px 45px rgba(23, 23, 23, .10);
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: var(--paper); color: var(--ink); }
-    body {
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
-    }
-    button, input { font: inherit; }
-    .app {
-      width: min(760px, 100%);
-      margin: 0 auto;
-      padding: 18px 16px 40px;
-    }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 16px;
-      margin-bottom: 18px;
-    }
-    h1 {
-      margin: 0;
-      font: 800 clamp(1.55rem, 7vw, 2.35rem)/1.05 Georgia, serif;
-    }
-    .date {
-      color: var(--muted);
-      font-size: .9rem;
-      text-align: right;
-    }
-    .recorder {
-      background: var(--card);
-      border-radius: 30px;
-      padding: 32px 20px 26px;
-      text-align: center;
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(0,0,0,.04);
-    }
-    .eyebrow {
-      margin: 0 0 10px;
-      color: var(--muted);
-      font-size: .73rem;
-      font-weight: 800;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-    }
-    .activity {
-      min-height: 2.5rem;
-      margin: 0 auto 18px;
-      font: 700 clamp(1.45rem, 6vw, 2.1rem)/1.15 Georgia, serif;
-      max-width: 560px;
-    }
-    .timer {
-      margin: 0 0 24px;
-      font-variant-numeric: tabular-nums;
-      font-size: clamp(2rem, 13vw, 4.2rem);
-      font-weight: 800;
-      letter-spacing: -.04em;
-    }
-    .record-button {
-      width: 156px;
-      height: 156px;
-      border: 0;
-      border-radius: 50%;
-      background: var(--red);
-      color: white;
-      cursor: pointer;
-      box-shadow: 0 14px 30px rgba(180,35,24,.35);
-      transition: transform .12s ease, background .2s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .record-button:active { transform: scale(.97); }
-    .record-button.running {
-      background: var(--red-dark);
-      animation: pulse 1.4s infinite;
-    }
-    .record-button .icon {
-      display: block;
-      font-size: 3.3rem;
-      line-height: 1;
-      margin-bottom: 5px;
-    }
-    .record-button .label {
-      display: block;
-      font-size: .84rem;
-      font-weight: 900;
-      letter-spacing: .08em;
-    }
-    @keyframes pulse {
-      50% { box-shadow: 0 0 0 20px rgba(180,35,24,.13), 0 14px 30px rgba(180,35,24,.25); }
-    }
-    .status {
-      min-height: 1.3rem;
-      margin: 18px 0 0;
-      color: var(--muted);
-      font-weight: 650;
-    }
-    .fallback {
-      display: none;
-      gap: 10px;
-      margin: 18px auto 0;
-      max-width: 480px;
-    }
-    .fallback.show { display: grid; grid-template-columns: 1fr auto; }
-    .fallback input {
-      width: 100%;
-      border: 1px solid #cfcfcf;
-      border-radius: 12px;
-      padding: 13px 14px;
-      background: white;
-    }
-    .small-button, .toolbar button, .file-label {
-      border: 0;
-      border-radius: 10px;
-      padding: 11px 14px;
-      font-weight: 800;
-      cursor: pointer;
-      background: #e7e5e4;
-      color: var(--ink);
-      text-decoration: none;
-    }
-    .summary {
-      margin-top: 24px;
-      background: rgba(255,255,255,.56);
-      border-radius: 24px;
-      padding: 20px;
-    }
-    .summary-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: end;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-    h2 { margin: 0; font: 800 1.35rem/1.1 Georgia, serif; }
-    .total {
-      font-weight: 900;
-      font-variant-numeric: tabular-nums;
-    }
-    .entries { display: grid; gap: 0; }
-    .entry {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px 16px;
-      padding: 15px 2px;
-      border-top: 1px solid var(--line);
-    }
-    .entry:first-child { border-top: 0; }
-    .entry-title { font-weight: 850; }
-    .entry-duration { font-weight: 900; font-variant-numeric: tabular-nums; }
-    .entry-meta {
-      grid-column: 1 / -1;
-      color: var(--muted);
-      font-size: .84rem;
-    }
-    .empty {
-      padding: 22px 0 8px;
-      text-align: center;
-      color: var(--muted);
-    }
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 9px;
-      margin-top: 20px;
-    }
-    .toolbar .danger { background: #fee2e2; color: #991b1b; }
-    .toolbar .primary { background: #171717; color: white; }
-    .file-label input { display: none; }
-    .note {
-      margin: 18px 2px 0;
-      color: var(--muted);
-      font-size: .78rem;
-      line-height: 1.45;
-    }
-    dialog {
-      width: min(500px, calc(100% - 32px));
-      border: 0;
-      border-radius: 20px;
-      padding: 22px;
-      box-shadow: var(--shadow);
-    }
-    dialog::backdrop { background: rgba(0,0,0,.35); }
-    dialog h3 { margin-top: 0; }
-    dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin-bottom: 0; }
-
-    .cloud-card {
-      margin: 0 0 18px;
-      padding: 14px 16px;
-      border-radius: 18px;
-      background: rgba(255,255,255,.62);
-      border: 1px solid rgba(0,0,0,.06);
-    }
-    .cloud-row { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
-    .cloud-row input {
-      flex: 1 1 220px; min-width: 0; border: 1px solid #cfcfcf;
-      border-radius: 10px; padding: 11px 12px; background: white;
-    }
-    .cloud-status { margin: 8px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.4; }
-    .sync-dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#a3a3a3; margin-right:6px; }
-    .sync-dot.ok { background: var(--green); }
-    .sync-dot.warn { background: #b45309; }
-
-    .mode-tabs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 18px; }
-    .mode-tab { border:0; border-radius:14px; padding:14px 12px; font-weight:900; background:#e7e5e4; color:var(--ink); cursor:pointer; }
-    .mode-tab.active { background:#171717; color:white; }
-    .view[hidden] { display:none !important; }
-    .fragment-card { background:var(--card); border-radius:30px; padding:26px 20px; box-shadow:var(--shadow); border:1px solid rgba(0,0,0,.04); }
-    .fragment-card textarea, .fragment-card input { width:100%; border:1px solid #cfcfcf; border-radius:14px; padding:14px; background:white; font:inherit; }
-    .fragment-card textarea { min-height:260px; resize:vertical; font-family:Georgia,serif; font-size:1.08rem; line-height:1.5; }
-    .fragment-form { display:grid; gap:12px; }
-    .fragment-actions { display:flex; gap:9px; flex-wrap:wrap; }
-    .fragment-list { margin-top:22px; display:grid; gap:10px; }
-    .fragment-item { background:rgba(255,255,255,.62); border-radius:18px; padding:15px; border:1px solid rgba(0,0,0,.06); }
-    .fragment-item-head { display:flex; justify-content:space-between; gap:12px; align-items:start; }
-    .fragment-code { font-weight:900; color:var(--red-dark); }
-    .fragment-title { font-weight:900; margin:3px 0 8px; }
-    .fragment-body { white-space:pre-wrap; line-height:1.45; color:#353535; max-height:8.5em; overflow:hidden; }
-    .fragment-meta { color:var(--muted); font-size:.78rem; margin-top:10px; }
-    .fragment-item button { margin-top:10px; }
-
-    @media (max-width: 520px) {
-      .app { padding-left: 12px; padding-right: 12px; }
-      .recorder { padding-left: 14px; padding-right: 14px; }
-      .record-button { width: 146px; height: 146px; }
-      .summary { padding: 17px; }
-    }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#991b1b"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json"><title>Stolen Minutes</title>
+<style>
+:root{--ink:#171717;--muted:#737373;--line:#dedbd4;--paper:#f5f1e9;--card:#fffdf8;--red:#b42318;--green:#166534;--amber:#a16207;--shadow:0 16px 45px rgba(23,23,23,.10)}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink)}body{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}button,input,textarea,select{font:inherit}.app{width:min(820px,100%);margin:auto;padding:18px 14px 44px}header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px}h1,h2,h3{font-family:Georgia,serif}h1{margin:0;font-size:clamp(1.55rem,7vw,2.35rem)}h2{margin:0;font-size:1.35rem}.date,.muted,.note{color:var(--muted)}.date{text-align:right;font-size:.88rem}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}.tab,.btn{border:0;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer;background:#e7e5e4;color:var(--ink)}.tab.active,.btn.primary{background:#171717;color:#fff}.btn.danger{background:#fee2e2;color:#991b1b}.btn.good{background:#dcfce7;color:#166534}.view[hidden]{display:none!important}.card{background:var(--card);border:1px solid rgba(0,0,0,.05);border-radius:24px;padding:20px;box-shadow:var(--shadow);margin-bottom:18px}.cloud{background:rgba(255,255,255,.62);box-shadow:none}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}.grow{flex:1 1 220px}.field{width:100%;border:1px solid #c8c6c0;border-radius:12px;padding:12px 13px;background:#fff}.grid{display:grid;gap:12px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.eyebrow{margin:0 0 8px;color:var(--muted);font-size:.72rem;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.status{font-size:.82rem;line-height:1.4;margin:8px 0 0}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#a3a3a3;margin-right:6px}.dot.ok{background:var(--green)}.dot.warn{background:var(--amber)}.recorder{text-align:center;padding:30px 20px}.activity{font:700 clamp(1.4rem,5vw,2rem)/1.15 Georgia,serif;min-height:2.3rem}.timer{font-size:clamp(2rem,12vw,4rem);font-weight:900;font-variant-numeric:tabular-nums;margin:14px 0}.record{width:150px;height:150px;border:0;border-radius:50%;background:var(--red);color:#fff;font-size:1.1rem;font-weight:900;cursor:pointer}.record.running{background:#7f1d1d}.list{display:grid;gap:10px}.item{background:rgba(255,255,255,.66);border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:14px}.item-head{display:flex;justify-content:space-between;gap:10px}.item-title{font-weight:900}.meta{color:var(--muted);font-size:.8rem;margin-top:5px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.metric{font-size:1.9rem;font-weight:900}.capture{font-size:1.08rem;min-height:88px;resize:vertical}.timeline-date{font-weight:900;margin:16px 2px 7px}.event{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:start}.event-icon{width:42px;height:42px;border-radius:14px;background:#eee9df;display:grid;place-items:center;font-weight:900}.pill{display:inline-block;border-radius:999px;background:#eee9df;padding:4px 8px;font-size:.75rem;font-weight:800;margin:4px 4px 0 0}.suggestions{display:flex;gap:7px;flex-wrap:wrap}.suggestions button{border:1px solid var(--line);background:white;border-radius:999px;padding:7px 10px;cursor:pointer}.food-row{display:grid;grid-template-columns:1fr 100px 100px auto;gap:8px;align-items:center}.fragment-body{white-space:pre-wrap;line-height:1.45;max-height:10em;overflow:hidden}.empty{text-align:center;color:var(--muted);padding:18px}dialog{width:min(620px,calc(100% - 24px));border:0;border-radius:20px;padding:20px;box-shadow:var(--shadow)}dialog::backdrop{background:rgba(0,0,0,.45)}@media(max-width:600px){.grid.two,.grid.three{grid-template-columns:1fr}.food-row{grid-template-columns:1fr 80px}.food-row .food-carbs{grid-column:1}.event{grid-template-columns:42px 1fr}.event-actions{grid-column:2}.card{padding:17px}.tabs{gap:5px}.tab{padding:11px 5px;font-size:.84rem}}
+</style>
 </head>
-<body>
-  <main class="app">
-    <header>
-      <h1>Stolen Minutes</h1>
-      <div class="date" id="todayLabel"></div>
-    </header>
+<body><main class="app">
+<header><h1>Stolen Minutes</h1><div class="date" id="todayLabel"></div></header>
+<nav class="tabs"><button class="tab active" data-mode="timer">Stolen Minutes</button><button class="tab" data-mode="fragments">Fragments</button><button class="tab" data-mode="diabetes">Diabetes</button></nav>
+<section class="card cloud"><div class="row" id="signedOut"><input class="field grow" id="email" type="email" placeholder="Email for secure sync"><button class="btn" id="login">Email login link</button></div><div class="row" id="signedIn" hidden><strong id="account"></strong><button class="btn" id="sync">Sync now</button><button class="btn" id="logout">Sign out</button></div><p class="status"><span class="dot" id="dot"></span><span id="cloudStatus">Local-only mode.</span></p></section>
 
-    <nav class="mode-tabs" aria-label="App sections">
-      <button class="mode-tab active" id="timerTab" type="button">Stolen Minutes</button>
-      <button class="mode-tab" id="fragmentsTab" type="button">Fragments</button>
-    </nav>
+<section class="view" id="timerView">
+<div class="card recorder"><p class="eyebrow">Time auditor</p><p class="activity" id="activityLabel">Press, then name the activity</p><p class="timer" id="timer">00:00:00</p><button class="record" id="record">START</button><div class="row" id="activityFallback" hidden style="margin-top:16px"><input class="field grow" id="activityInput" placeholder="Activity"><button class="btn" id="applyActivity">Use</button></div></div>
+<div class="card"><div class="row" style="justify-content:space-between"><h2>Today</h2><strong id="todayTotal">0 min</strong></div><div class="list" id="activityList"></div><div class="toolbar"><button class="btn" id="exportActivities">Export CSV</button></div></div>
+</section>
 
-    <section class="cloud-card" aria-label="Cloud sync">
-      <div class="cloud-row" id="signedOutControls">
-        <input id="emailInput" type="email" autocomplete="email" placeholder="Email for secure sync">
-        <button class="small-button" id="sendLinkButton" type="button">Email login link</button>
-      </div>
-      <div class="cloud-row" id="signedInControls" hidden>
-        <strong id="accountLabel">Signed in</strong>
-        <button class="small-button" id="syncButton" type="button">Sync now</button>
-        <button class="small-button" id="signOutButton" type="button">Sign out</button>
-      </div>
-      <p class="cloud-status"><span class="sync-dot" id="syncDot"></span><span id="cloudStatus">Local-only mode until Supabase is configured and you sign in.</span></p>
-    </section>
+<section class="view" id="fragmentsView" hidden>
+<div class="card"><p class="eyebrow">Capture</p><h2>New Fragment</h2><form class="grid" id="fragmentForm" style="margin-top:14px"><input class="field" id="fragmentTitle" maxlength="200" placeholder="Optional title"><textarea class="field capture" id="fragmentBody" required placeholder="Type, paste, or dictate…"></textarea><input class="field" id="fragmentTags" placeholder="Tags, separated by commas"><button class="btn primary">Save Fragment</button></form></div><div class="list" id="fragmentList"></div>
+</section>
 
-    <div class="view" id="timerView">
-    <section class="recorder" aria-labelledby="recorderTitle">
-      <p class="eyebrow" id="recorderTitle">Time auditor</p>
-      <p class="activity" id="activityLabel">Press, then name the activity</p>
-      <p class="timer" id="timer">00:00:00</p>
-
-      <button class="record-button" id="recordButton" type="button" aria-label="Start activity">
-        <span class="icon">●</span>
-        <span class="label" id="buttonLabel">START</span>
-      </button>
-
-      <p class="status" id="status">Ready</p>
-
-      <div class="fallback" id="fallback">
-        <input id="activityInput" type="text" autocomplete="off" placeholder="e.g. cleaning">
-        <button class="small-button" id="useTextButton" type="button">Use</button>
-      </div>
-    </section>
-
-    <section class="summary">
-      <div class="summary-head">
-        <h2>Today</h2>
-        <div class="total" id="todayTotal">0 min</div>
-      </div>
-      <div class="entries" id="entries"></div>
-
-      <div class="toolbar">
-        <button class="primary" id="exportJson" type="button">Export backup</button>
-        <button id="exportCsv" type="button">Export CSV</button>
-        <label class="file-label">Import backup<input id="importFile" type="file" accept=".json,application/json"></label>
-        <button class="danger" id="clearData" type="button">Clear phone data</button>
-      </div>
-      <p class="note">
-        Entries are cached locally for offline use and synced to your private Supabase account when signed in.
-        Export remains available as an additional portable backup.
-      </p>
-    </section>
-    </div>
-
-    <div class="view" id="fragmentsView" hidden>
-      <section class="fragment-card">
-        <p class="eyebrow">Capture</p>
-        <h2 style="margin-bottom:14px">New Fragment</h2>
-        <form class="fragment-form" id="fragmentForm">
-          <input id="fragmentTitleInput" type="text" maxlength="200" placeholder="Optional title">
-          <textarea id="fragmentBodyInput" required placeholder="Type, paste, or use the Apple keyboard microphone…"></textarea>
-          <input id="fragmentTagsInput" type="text" maxlength="500" placeholder="Optional tags, separated by commas">
-          <div class="fragment-actions">
-            <button class="small-button primary" type="submit">Save Fragment</button>
-            <button class="small-button" id="clearFragmentDraft" type="button">Clear</button>
-            <button class="small-button" id="exportFragments" type="button">Export Markdown</button>
-          </div>
-        </form>
-        <p class="note" id="fragmentStatus">Fragments are cached locally and sync to the same Supabase account.</p>
-      </section>
-      <section class="fragment-list" id="fragmentList"></section>
-    </div>
-  </main>
-
-  <dialog id="clearDialog">
-    <h3>Clear all local records?</h3>
-    <p>This removes the full master ledger from this browser. Export a backup first.</p>
-    <menu>
-      <button class="small-button" id="cancelClear" type="button">Cancel</button>
-      <button class="small-button danger" id="confirmClear" type="button">Clear everything</button>
-    </menu>
-  </dialog>
-
+<section class="view" id="diabetesView" hidden>
+<div class="card"><p class="eyebrow">Rapid capture</p><h2>Log health event</h2><textarea class="field capture" id="healthCapture" placeholder="Examples: glucose 7.2 before breakfast; ate 2 eggs and toast; took 4 units insulin"></textarea><div class="suggestions" style="margin-top:10px"><button data-example="glucose 6.8 before breakfast">Glucose</button><button data-example="ate porridge with milk and banana">Meal</button><button data-example="took 4 units rapid insulin">Medication</button></div><div class="toolbar"><button class="btn primary" id="parseHealth">Review event</button><button class="btn" id="showManual">Manual entry</button></div><p class="note" id="healthHint">Entries are stored on this device immediately, then synced when signed in.</p></div>
+<div class="card" id="manualCard" hidden><h2 id="healthFormTitle">New event</h2><form class="grid" id="healthForm" style="margin-top:14px"><input type="hidden" id="healthId"><div class="grid two"><select class="field" id="healthType"><option value="glucose">Glucose</option><option value="meal">Meal</option><option value="medication">Medication</option><option value="exercise">Exercise</option><option value="note">Note</option></select><input class="field" id="healthTime" type="datetime-local" required></div><div id="glucoseFields" class="grid two"><input class="field" id="glucoseValue" type="number" step="0.1" min="0" placeholder="Glucose mmol/L"><select class="field" id="glucoseContext"><option value="unspecified">Context</option><option value="fasting">Fasting</option><option value="before meal">Before meal</option><option value="after meal">After meal</option><option value="bedtime">Bedtime</option></select></div><div id="mealFields" class="grid"><div class="row"><input class="field grow" id="foodSearch" placeholder="Add a remembered food"><button class="btn" id="addFood" type="button">Add food</button></div><div class="suggestions" id="foodSuggestions"></div><div class="list" id="mealItems"></div></div><div id="medicationFields" class="grid two" hidden><input class="field" id="medicationName" placeholder="Medication / insulin"><input class="field" id="medicationDose" placeholder="Dose"></div><textarea class="field" id="healthNotes" placeholder="Notes"></textarea><div class="toolbar"><button class="btn primary">Save event</button><button class="btn" id="cancelHealth" type="button">Cancel</button></div></form></div>
+<div class="card"><div class="row" style="justify-content:space-between"><h2>Timeline</h2><div><span class="metric" id="latestGlucose">—</span> <span class="muted">mmol/L</span></div></div><div class="list" id="healthTimeline"></div><div class="toolbar"><button class="btn" id="exportHealth">Export JSON</button><button class="btn" id="exportHealthCsv">Export CSV</button></div></div>
+<div class="card"><h2>Personal food memory</h2><p class="note">Foods entered in meals are remembered with aliases, portions and carbohydrate estimates.</p><div class="list" id="foodLibrary"></div></div>
+</section>
+</main>
+<dialog id="editFoodDialog"><form method="dialog" class="grid" id="foodForm"><h3>Edit food</h3><input type="hidden" id="foodId"><input class="field" id="foodName" required placeholder="Food name"><input class="field" id="foodAliases" placeholder="Aliases, separated by commas"><div class="grid two"><input class="field" id="foodPortion" placeholder="Usual portion"><input class="field" id="foodCarbs" type="number" step="0.1" min="0" placeholder="Carbs (g)"></div><div class="toolbar"><button class="btn primary" value="save">Save</button><button class="btn" value="cancel">Cancel</button></div></form></dialog>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "/config.js";
-
-(() => {
-  "use strict";
-
-  const STORAGE_KEY = "stolen-minutes-ledger-v2";
-  const LEGACY_STORAGE_KEY = "stolen-minutes-ledger-v1";
-  const ACTIVE_KEY = "stolen-minutes-active-v1";
-  const FRAGMENTS_KEY = "stolen-minutes-fragments-v1";
-  const configured = SUPABASE_URL?.startsWith("https://") && SUPABASE_PUBLISHABLE_KEY && !SUPABASE_PUBLISHABLE_KEY.includes("PASTE_");
-  const supabase = configured ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-  }) : null;
-
-  const $ = id => document.getElementById(id);
-  const recordButton=$("recordButton"), buttonLabel=$("buttonLabel"), activityLabel=$("activityLabel");
-  const timerEl=$("timer"), statusEl=$("status"), fallback=$("fallback"), activityInput=$("activityInput");
-  const entriesEl=$("entries"), todayTotalEl=$("todayTotal"), cloudStatus=$("cloudStatus"), syncDot=$("syncDot");
-  let ledger=loadJson(STORAGE_KEY, loadJson(LEGACY_STORAGE_KEY, []));
-  let fragments=loadJson(FRAGMENTS_KEY, []);
-  let active=loadJson(ACTIVE_KEY,null), ticker=null, recognition=null, session=null, syncing=false;
-
-  function loadJson(key,fallbackValue){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallbackValue}catch{return fallbackValue}}
-  function saveLedger(){localStorage.setItem(STORAGE_KEY,JSON.stringify(ledger))}
-  function saveFragments(){localStorage.setItem(FRAGMENTS_KEY,JSON.stringify(fragments))}
-  function saveActive(){active?localStorage.setItem(ACTIVE_KEY,JSON.stringify(active)):localStorage.removeItem(ACTIVE_KEY)}
-  const pad=n=>String(n).padStart(2,"0");
-  function formatElapsed(ms){const t=Math.max(0,Math.floor(ms/1000));return `${pad(Math.floor(t/3600))}:${pad(Math.floor((t%3600)/60))}:${pad(t%60)}`}
-  function formatDuration(ms){const mins=Math.max(1,Math.round(ms/60000));if(ms===0)return"0 min";if(mins<60)return`${mins} min`;const h=Math.floor(mins/60),m=mins%60;return m?`${h} h ${m} min`:`${h} h`}
-  function localDateKey(d){return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
-  function formatTime(iso){return new Date(iso).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}
-  function setTodayLabel(){$("todayLabel").textContent=new Date().toLocaleDateString([],{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
-  function escapeHtml(v){return String(v).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]))}
-
-  function setCloud(message,state=""){
-    cloudStatus.textContent=message; syncDot.className=`sync-dot ${state}`;
-  }
-  function renderAuth(){
-    $("signedOutControls").hidden=!!session;
-    $("signedInControls").hidden=!session;
-    $("accountLabel").textContent=session?.user?.email?session.user.email:"Signed in";
-    if(!configured)setCloud("Supabase is not configured yet. Add the project URL and publishable key to config.js.","warn");
-    else if(!navigator.onLine)setCloud("Offline. Entries are safe locally and will sync when online.","warn");
-    else if(session)setCloud("Signed in. Cloud sync is active.","ok");
-    else setCloud("Sign in by email to enable private cloud sync.");
-  }
-
-  function render(){
-    setTodayLabel(); renderAuth();
-    if(active){recordButton.classList.add("running");recordButton.setAttribute("aria-label","Stop activity");buttonLabel.textContent="STOP";activityLabel.textContent=active.activity||"Listening…";statusEl.textContent=active.activity?`Started ${formatTime(active.startedAt)}`:"Listening for activity…";startTicker()}
-    else{recordButton.classList.remove("running");recordButton.setAttribute("aria-label","Start activity");buttonLabel.textContent="START";activityLabel.textContent="Press, then name the activity";timerEl.textContent="00:00:00";statusEl.textContent="Ready";stopTicker()}
-    const today=localDateKey(new Date());
-    const items=ledger.filter(x=>localDateKey(new Date(x.startedAt))===today).sort((a,b)=>new Date(b.startedAt)-new Date(a.startedAt));
-    todayTotalEl.textContent=formatDuration(items.reduce((s,x)=>s+x.elapsedMs,0));
-    entriesEl.innerHTML=items.length?items.map(x=>`<article class="entry"><div class="entry-title">${escapeHtml(x.activity)}</div><div class="entry-duration">${formatDuration(x.elapsedMs)}</div><div class="entry-meta">${formatTime(x.startedAt)}–${formatTime(x.endedAt)} · ${formatElapsed(x.elapsedMs)}</div></article>`).join(""):'<div class="empty">No completed activities today.</div>';
-  }
-  function renderFragments(){
-    const list=$("fragmentList");
-    const sorted=[...fragments].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-    list.innerHTML=sorted.length?sorted.map(f=>`<article class="fragment-item"><div class="fragment-item-head"><div><div class="fragment-code">${escapeHtml(f.fragmentCode)}</div><div class="fragment-title">${escapeHtml(f.title||"Untitled fragment")}</div></div><button class="small-button danger" data-delete-fragment="${escapeHtml(f.id)}" type="button">Delete</button></div><div class="fragment-body">${escapeHtml(f.body)}</div>${f.tags?.length?`<div class="fragment-meta">${escapeHtml(f.tags.join(", "))}</div>`:""}<div class="fragment-meta">${new Date(f.createdAt).toLocaleString()}</div></article>`).join(""):'<div class="empty">No fragments yet.</div>';
-  }
-  function setMode(mode){
-    const isFragments=mode==="fragments";
-    $("timerView").hidden=isFragments; $("fragmentsView").hidden=!isFragments;
-    $("timerTab").classList.toggle("active",!isFragments); $("fragmentsTab").classList.toggle("active",isFragments);
-    if(isFragments)setTimeout(()=>$("fragmentBodyInput").focus(),0);
-  }
-  function nextFragmentCode(){
-    const max=fragments.reduce((m,f)=>Math.max(m,Number(String(f.fragmentCode||"").replace(/\D/g,""))||0),0);
-    return `F${String(max+1).padStart(3,"0")}`;
-  }
-  async function saveFragment(e){
-    e.preventDefault(); const body=$("fragmentBodyInput").value.trim(); if(!body)return;
-    const now=new Date().toISOString();
-    const fragment={id:crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`,fragmentCode:nextFragmentCode(),title:$("fragmentTitleInput").value.trim()||"Untitled fragment",body,tags:$("fragmentTagsInput").value.split(",").map(x=>x.trim()).filter(Boolean),createdAt:now,updatedAt:now};
-    fragments.push(fragment); saveFragments(); renderFragments(); $("fragmentForm").reset(); $("fragmentStatus").textContent=`Saved ${fragment.fragmentCode}.`;
-    if(session&&navigator.onLine)await syncCloud();
-  }
-  function exportFragmentsMarkdown(){
-    const content=[...fragments].sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)).map(f=>`# ${f.fragmentCode} — ${f.title||"Untitled fragment"}\n\n${f.body}\n\n${f.tags?.length?`Tags: ${f.tags.join(", ")}\n\n`:""}Created: ${f.createdAt}`).join("\n\n---\n\n");
-    download(`fragments-${localDateKey(new Date())}.md`,"text/markdown;charset=utf-8",content||"# Fragments\n");
-  }
-
-  function startTicker(){stopTicker();const u=()=>{if(active)timerEl.textContent=formatElapsed(Date.now()-new Date(active.startedAt).getTime())};u();ticker=setInterval(u,1000)}
-  function stopTicker(){if(ticker)clearInterval(ticker);ticker=null}
-  function startActivity(){active={id:crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`,activity:"",startedAt:new Date().toISOString()};saveActive();render();captureActivity()}
-  async function stopActivity(){
-    if(!active)return;const endedAt=new Date(),startedAt=new Date(active.startedAt),elapsedMs=Math.max(1000,endedAt-startedAt);
-    const entry={id:active.id,activity:active.activity||"Unlabelled activity",startedAt:active.startedAt,endedAt:endedAt.toISOString(),elapsedMs,updatedAt:new Date().toISOString()};
-    ledger.push(entry);active=null;saveLedger();saveActive();fallback.classList.remove("show");render();
-    if(session&&navigator.onLine) await syncCloud();
-  }
-  function captureActivity(){
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){showTextFallback("Voice recognition is unavailable here. Type the activity.");return}
-    try{recognition=new SR();recognition.lang=navigator.language||"en-AU";recognition.interimResults=true;recognition.continuous=false;recognition.maxAlternatives=1;
-      recognition.onresult=e=>{let t="";for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;t=t.trim();if(t){active.activity=t;saveActive();activityLabel.textContent=t;statusEl.textContent=`Started ${formatTime(active.startedAt)}`}};
-      recognition.onerror=()=>{if(!active?.activity)showTextFallback("I could not hear the activity. Type it below.")};recognition.onend=()=>{if(active&&!active.activity)showTextFallback("No activity captured. Type it below.")};recognition.start()
-    }catch{showTextFallback("Voice recognition could not start. Type the activity.")}
-  }
-  function showTextFallback(m){statusEl.textContent=m;fallback.classList.add("show");activityInput.focus()}
-  function applyTypedActivity(){const v=activityInput.value.trim();if(!active||!v)return;active.activity=v;saveActive();activityInput.value="";fallback.classList.remove("show");render()}
-  function download(name,type,content){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-  function exportBackup(){download(`stolen-minutes-${localDateKey(new Date())}.json`,"application/json",JSON.stringify({app:"Stolen Minutes",version:2,exportedAt:new Date().toISOString(),entries:ledger},null,2))}
-  function exportCsv(){const rows=[["activity","start_date","start_time","end_date","end_time","elapsed_seconds","elapsed_minutes"]];[...ledger].sort((a,b)=>new Date(a.startedAt)-new Date(b.startedAt)).forEach(x=>{const s=new Date(x.startedAt),e=new Date(x.endedAt);rows.push([x.activity,localDateKey(s),s.toLocaleTimeString([],{hour12:false}),localDateKey(e),e.toLocaleTimeString([],{hour12:false}),Math.round(x.elapsedMs/1000),(x.elapsedMs/60000).toFixed(2)])});download(`stolen-minutes-${localDateKey(new Date())}.csv`,"text/csv;charset=utf-8",rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n"))}
-  async function importBackup(file){try{const parsed=JSON.parse(await file.text()),incoming=Array.isArray(parsed)?parsed:parsed.entries;if(!Array.isArray(incoming))throw Error();const valid=incoming.filter(x=>x&&typeof x.activity==="string"&&x.startedAt&&x.endedAt&&Number.isFinite(Number(x.elapsedMs))).map(x=>({...x,id:x.id||crypto.randomUUID(),elapsedMs:Number(x.elapsedMs),updatedAt:x.updatedAt||new Date().toISOString()}));const byId=new Map(ledger.map(x=>[x.id,x]));valid.forEach(x=>byId.set(x.id,x));ledger=[...byId.values()];saveLedger();render();statusEl.textContent=`Imported ${valid.length} record${valid.length===1?"":"s"}.`;if(session)await syncCloud()}catch{statusEl.textContent="Import failed: invalid Stolen Minutes backup."}}
-
-  async function sendMagicLink(){
-    if(!configured){setCloud("Configure config.js first.","warn");return}
-    const email=$("emailInput").value.trim();if(!email){setCloud("Enter your email address.","warn");return}
-    setCloud("Sending secure login link…");
-    const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin}});
-    setCloud(error?`Login email failed: ${error.message}`:"Check your email and open the login link on this device.",error?"warn":"ok");
-  }
-  async function syncCloud(){
-    if(!supabase||!session||syncing||!navigator.onLine)return;
-    syncing=true;setCloud("Syncing…");
-    try{
-      const rows=ledger.map(x=>({id:x.id,user_id:session.user.id,activity:x.activity,started_at:x.startedAt,ended_at:x.endedAt,elapsed_ms:x.elapsedMs,updated_at:x.updatedAt||x.endedAt}));
-      if(rows.length){const {error}=await supabase.from("activities").upsert(rows,{onConflict:"id"});if(error)throw error}
-      const {data,error}=await supabase.from("activities").select("id,activity,started_at,ended_at,elapsed_ms,updated_at").order("started_at",{ascending:true});if(error)throw error;
-      const map=new Map(ledger.map(x=>[x.id,x]));(data||[]).forEach(r=>map.set(r.id,{id:r.id,activity:r.activity,startedAt:r.started_at,endedAt:r.ended_at,elapsedMs:Number(r.elapsed_ms),updatedAt:r.updated_at}));ledger=[...map.values()];saveLedger();
-      const fragmentRows=fragments.map(f=>({id:f.id,user_id:session.user.id,fragment_code:f.fragmentCode,title:f.title,body:f.body,tags:f.tags||[],created_at:f.createdAt,updated_at:f.updatedAt||f.createdAt}));
-      if(fragmentRows.length){const {error:fragmentUpsertError}=await supabase.from("fragments").upsert(fragmentRows,{onConflict:"id"});if(fragmentUpsertError)throw fragmentUpsertError}
-      const {data:cloudFragments,error:fragmentFetchError}=await supabase.from("fragments").select("id,fragment_code,title,body,tags,created_at,updated_at").order("created_at",{ascending:true});if(fragmentFetchError)throw fragmentFetchError;
-      const fragmentMap=new Map(fragments.map(f=>[f.id,f]));(cloudFragments||[]).forEach(r=>fragmentMap.set(r.id,{id:r.id,fragmentCode:r.fragment_code,title:r.title,body:r.body,tags:r.tags||[],createdAt:r.created_at,updatedAt:r.updated_at}));fragments=[...fragmentMap.values()];saveFragments();render();renderFragments();setCloud(`Synced ${ledger.length} timer record${ledger.length===1?"":"s"} and ${fragments.length} fragment${fragments.length===1?"":"s"}.`,"ok");
-    }catch(e){setCloud(`Sync failed: ${e.message||e}`,"warn")}finally{syncing=false}
-  }
-  async function signOut(){if(!supabase)return;await supabase.auth.signOut({scope:"local"});session=null;render()}
-  async function initAuth(){
-    if(!supabase){render();return}
-    const {data}=await supabase.auth.getSession();session=data.session;render();if(session)await syncCloud();
-    supabase.auth.onAuthStateChange((_event,newSession)=>{session=newSession;render();if(session)setTimeout(syncCloud,0)});
-  }
-
-  recordButton.addEventListener("click",()=>active?stopActivity():startActivity());
-  $("useTextButton").addEventListener("click",applyTypedActivity);activityInput.addEventListener("keydown",e=>{if(e.key==="Enter")applyTypedActivity()});
-  $("exportJson").addEventListener("click",exportBackup);$("exportCsv").addEventListener("click",exportCsv);
-  $("importFile").addEventListener("change",e=>{const f=e.target.files?.[0];if(f)importBackup(f);e.target.value=""});
-  $("sendLinkButton").addEventListener("click",sendMagicLink);$("syncButton").addEventListener("click",syncCloud);$("signOutButton").addEventListener("click",signOut);
-  const clearDialog=$("clearDialog");$("clearData").addEventListener("click",()=>clearDialog.showModal());$("cancelClear").addEventListener("click",()=>clearDialog.close());
-  $("confirmClear").addEventListener("click",()=>{ledger=[];active=null;localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(LEGACY_STORAGE_KEY);localStorage.removeItem(ACTIVE_KEY);clearDialog.close();render()});
-  $("timerTab").addEventListener("click",()=>setMode("timer")); $("fragmentsTab").addEventListener("click",()=>setMode("fragments"));
-  $("fragmentForm").addEventListener("submit",saveFragment); $("clearFragmentDraft").addEventListener("click",()=>$("fragmentForm").reset()); $("exportFragments").addEventListener("click",exportFragmentsMarkdown);
-  $("fragmentList").addEventListener("click",async e=>{const id=e.target?.dataset?.deleteFragment;if(!id)return;fragments=fragments.filter(f=>f.id!==id);saveFragments();renderFragments();if(session&&navigator.onLine){await supabase.from("fragments").delete().eq("id",id);await syncCloud()}});
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden){render();if(session)syncCloud()}});window.addEventListener("online",()=>{render();if(session)syncCloud()});window.addEventListener("offline",render);
-  if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
-  render();renderFragments();setMode("timer");initAuth();
-})();
-</script>
-</body>
-</html>
+const $=id=>document.getElementById(id), nowIso=()=>new Date().toISOString(), uuid=()=>crypto.randomUUID();
+const keys={activities:"stolen-minutes-ledger-v2",fragments:"stolen-minutes-fragments-v1",active:"stolen-minutes-active-v1",health:"stolen-minutes-health-v1",foods:"stolen-minutes-foods-v1"};
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}}, save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+let activities=load(keys.activities,[]),fragments=load(keys.fragments,[]),active=load(keys.active,null),health=load(keys.health,[]),foods=load(keys.foods,[]),mealDraft=[],session=null,syncing=false,ticker=null;
+const configured=SUPABASE_URL?.startsWith("https://")&&SUPABASE_PUBLISHABLE_KEY&&!SUPABASE_PUBLISHABLE_KEY.includes("PASTE_");
+const supabase=configured?createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const pad=n=>String(n).padStart(2,"0"), dateKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`, localInput=iso=>{const d=iso?new Date(iso):new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};
+const duration=ms=>{const m=Math.max(1,Math.round(ms/60000));return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60?m%60+" min":""}`}, elapsed=ms=>{const t=Math.max(0,Math.floor(ms/1000));return `${pad(Math.floor(t/3600))}:${pad(Math.floor(t%3600/60))}:${pad(t%60)}`};
+function download(name,type,text){const u=URL.createObjectURL(new Blob([text],{type})),a=document.createElement("a");a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function setMode(mode){document.querySelectorAll(".view").forEach(v=>v.hidden=v.id!==mode+"View");document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.mode===mode));if(mode==="diabetes")renderHealth()}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>setMode(t.dataset.mode));
+function cloud(msg,state=""){$("cloudStatus").textContent=msg;$('dot').className=`dot ${state}`}
+function renderAuth(){$("signedOut").hidden=!!session;$('signedIn').hidden=!session;$('account').textContent=session?.user?.email||"Signed in";if(!configured)cloud("Supabase is not configured.","warn");else if(!navigator.onLine)cloud("Offline. Changes are safe locally.","warn");else if(session)cloud("Signed in. Cloud sync is active.","ok");else cloud("Sign in to enable private cloud sync.")}
+async function login(){const email=$('email').value.trim();if(!email)return cloud("Enter your email.","warn");const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});cloud(error?error.message:"Check your email for the login link.",error?"warn":"ok")}
+async function syncCloud(){if(!supabase||!session||syncing||!navigator.onLine)return;syncing=true;cloud("Syncing…");try{const uid=session.user.id;
+if(activities.length){let {error}=await supabase.from("activities").upsert(activities.map(x=>({id:x.id,user_id:uid,activity:x.activity,started_at:x.startedAt,ended_at:x.endedAt,elapsed_ms:x.elapsedMs,updated_at:x.updatedAt||x.endedAt})));if(error)throw error}
+if(fragments.length){let {error}=await supabase.from("fragments").upsert(fragments.map(x=>({id:x.id,user_id:uid,fragment_code:x.fragmentCode,title:x.title,body:x.body,tags:x.tags,created_at:x.createdAt,updated_at:x.updatedAt})));if(error)throw error}
+if(health.length){let {error}=await supabase.from("health_events").upsert(health.map(x=>({id:x.id,user_id:uid,event_type:x.type,occurred_at:x.occurredAt,value_numeric:x.value??null,unit:x.unit||null,context:x.context||null,notes:x.notes||null,details:x.details||{},updated_at:x.updatedAt})));if(error)throw error}
+if(foods.length){let {error}=await supabase.from("foods").upsert(foods.map(x=>({id:x.id,user_id:uid,canonical_name:x.name,aliases:x.aliases||[],preferred_portion:x.portion||null,carbs_g:x.carbs===""?null:Number(x.carbs),usage_count:x.usageCount||0,last_used_at:x.lastUsedAt||null,updated_at:x.updatedAt})));if(error)throw error}
+const [a,f,h,fd]=await Promise.all([supabase.from("activities").select("*"),supabase.from("fragments").select("*"),supabase.from("health_events").select("*"),supabase.from("foods").select("*")]);for(const r of [a,f,h,fd])if(r.error)throw r.error;
+activities=merge(activities,a.data.map(r=>({id:r.id,activity:r.activity,startedAt:r.started_at,endedAt:r.ended_at,elapsedMs:Number(r.elapsed_ms),updatedAt:r.updated_at})));fragments=merge(fragments,f.data.map(r=>({id:r.id,fragmentCode:r.fragment_code,title:r.title,body:r.body,tags:r.tags||[],createdAt:r.created_at,updatedAt:r.updated_at})));health=merge(health,h.data.map(r=>({id:r.id,type:r.event_type,occurredAt:r.occurred_at,value:r.value_numeric,unit:r.unit,context:r.context,notes:r.notes,details:r.details||{},updatedAt:r.updated_at})));foods=merge(foods,fd.data.map(r=>({id:r.id,name:r.canonical_name,aliases:r.aliases||[],portion:r.preferred_portion||"",carbs:r.carbs_g??"",usageCount:r.usage_count||0,lastUsedAt:r.last_used_at,updatedAt:r.updated_at})));persist();renderAll();cloud(`Synced ${activities.length+fragments.length+health.length+foods.length} records.`,`ok`)}catch(e){cloud(`Sync failed: ${e.message}`,"warn")}finally{syncing=false}}
+function merge(local,remote){const m=new Map(local.map(x=>[x.id,x]));remote.forEach(x=>{const old=m.get(x.id);if(!old||new Date(x.updatedAt)>=new Date(old.updatedAt))m.set(x.id,x)});return [...m.values()]}
+function persist(){save(keys.activities,activities);save(keys.fragments,fragments);save(keys.health,health);save(keys.foods,foods)}
+async function deleteCloud(table,id){if(session&&navigator.onLine)await supabase.from(table).delete().eq("id",id)}
+function renderTimer(){if(active){$('record').textContent="STOP";$('record').classList.add('running');$('activityLabel').textContent=active.activity||"Name the activity";clearInterval(ticker);ticker=setInterval(()=>$('timer').textContent=elapsed(Date.now()-new Date(active.startedAt)),500)}else{$('record').textContent="START";$('record').classList.remove('running');$('activityLabel').textContent="Press, then name the activity";$('timer').textContent="00:00:00";clearInterval(ticker)}const today=dateKey(new Date()),items=activities.filter(x=>dateKey(new Date(x.startedAt))===today).sort((a,b)=>new Date(b.startedAt)-new Date(a.startedAt));$('todayTotal').textContent=duration(items.reduce((s,x)=>s+x.elapsedMs,0));$('activityList').innerHTML=items.length?items.map(x=>`<div class="item"><div class="item-head"><span class="item-title">${esc(x.activity)}</span><strong>${duration(x.elapsedMs)}</strong></div><div class="meta">${new Date(x.startedAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div></div>`).join(""):'<div class="empty">No entries today.</div>'}
+$('record').onclick=()=>{if(active){activities.push({id:active.id,activity:active.activity||"Unlabelled activity",startedAt:active.startedAt,endedAt:nowIso(),elapsedMs:Date.now()-new Date(active.startedAt),updatedAt:nowIso()});active=null;localStorage.removeItem(keys.active);persist();renderTimer();syncCloud()}else{active={id:uuid(),activity:"",startedAt:nowIso()};save(keys.active,active);$('activityFallback').hidden=false;renderTimer();$('activityInput').focus()}};$('applyActivity').onclick=()=>{if(active&&$('activityInput').value.trim()){active.activity=$('activityInput').value.trim();save(keys.active,active);$('activityFallback').hidden=true;$('activityInput').value="";renderTimer()}};
+function renderFragments(){$('fragmentList').innerHTML=fragments.length?[...fragments].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(f=>`<article class="item"><div class="item-title">${esc(f.fragmentCode)} — ${esc(f.title)}</div><div class="fragment-body">${esc(f.body)}</div><div class="meta">${esc((f.tags||[]).join(', '))}</div><div class="toolbar"><button class="btn danger" data-del-fragment="${f.id}">Delete</button></div></article>`).join(""):'<div class="empty">No fragments yet.</div>'}
+$('fragmentForm').onsubmit=e=>{e.preventDefault();const n=fragments.length+1;fragments.push({id:uuid(),fragmentCode:`F${String(n).padStart(3,'0')}`,title:$('fragmentTitle').value.trim()||"Untitled fragment",body:$('fragmentBody').value.trim(),tags:$('fragmentTags').value.split(',').map(s=>s.trim()).filter(Boolean),createdAt:nowIso(),updatedAt:nowIso()});e.target.reset();persist();renderFragments();syncCloud()};$('fragmentList').onclick=async e=>{const id=e.target.dataset.delFragment;if(id&&confirm("Delete this fragment?")){fragments=fragments.filter(x=>x.id!==id);persist();renderFragments();await deleteCloud("fragments",id)}};
+function switchHealthFields(){const t=$('healthType').value;$('glucoseFields').hidden=t!=="glucose";$('mealFields').hidden=t!=="meal";$('medicationFields').hidden=t!=="medication"}$('healthType').onchange=switchHealthFields;
+function parseCapture(){const text=$('healthCapture').value.trim();if(!text)return;$('manualCard').hidden=false;$('healthId').value="";$('healthTime').value=localInput();$('healthNotes').value=text;mealDraft=[];const g=text.match(/(?:glucose|bgl|blood sugar)\s*(?:is|was|at)?\s*(\d+(?:\.\d+)?)/i);if(g){$('healthType').value="glucose";$('glucoseValue').value=g[1];$('glucoseContext').value=/fast/i.test(text)?"fasting":/before/i.test(text)?"before meal":/after/i.test(text)?"after meal":"unspecified"}else if(/\b(ate|meal|breakfast|lunch|dinner|snack)\b/i.test(text)){$('healthType').value="meal";const meal=text.replace(/^(i\s+)?(ate|had)\s+/i,"");meal.split(/,|\band\b/i).map(s=>s.trim()).filter(Boolean).forEach(name=>addFoodToDraft(findOrCreateFood(name)))}else if(/\b(insulin|metformin|medication|dose|units?)\b/i.test(text)){$('healthType').value="medication";const dose=text.match(/(\d+(?:\.\d+)?)\s*(units?|u|mg)/i);$('medicationName').value=/insulin/i.test(text)?"Insulin":/metformin/i.test(text)?"Metformin":"";$('medicationDose').value=dose?dose[0]:""}else $('healthType').value="note";switchHealthFields();renderMealDraft();$('manualCard').scrollIntoView({behavior:'smooth'})}
+function findOrCreateFood(name){const q=name.toLowerCase(),found=foods.find(f=>f.name.toLowerCase()===q||(f.aliases||[]).some(a=>a.toLowerCase()===q));if(found)return found;const food={id:uuid(),name:name.replace(/^\d+\s*/,'').trim(),aliases:[],portion:"",carbs:"",usageCount:0,lastUsedAt:null,updatedAt:nowIso()};foods.push(food);persist();return food}
+function addFoodToDraft(food){mealDraft.push({foodId:food.id,name:food.name,portion:food.portion||"1 serving",carbs:food.carbs});food.usageCount=(food.usageCount||0)+1;food.lastUsedAt=nowIso();food.updatedAt=nowIso();persist();renderFoodSuggestions()}
+function renderFoodSuggestions(){const q=$('foodSearch').value.toLowerCase();const matches=[...foods].filter(f=>!q||f.name.toLowerCase().includes(q)||(f.aliases||[]).some(a=>a.toLowerCase().includes(q))).sort((a,b)=>(b.usageCount||0)-(a.usageCount||0)).slice(0,6);$('foodSuggestions').innerHTML=matches.map(f=>`<button type="button" data-add-food="${f.id}">${esc(f.name)}</button>`).join('')}
+function renderMealDraft(){$('mealItems').innerHTML=mealDraft.map((x,i)=>`<div class="food-row"><strong>${esc(x.name)}</strong><input class="field" data-portion="${i}" value="${esc(x.portion)}"><input class="field food-carbs" type="number" step="0.1" min="0" data-carbs="${i}" value="${esc(x.carbs)}" placeholder="carbs g"><button class="btn danger" type="button" data-remove-food="${i}">×</button></div>`).join('')}
+$('foodSearch').oninput=renderFoodSuggestions;$('addFood').onclick=()=>{const n=$('foodSearch').value.trim();if(n){addFoodToDraft(findOrCreateFood(n));$('foodSearch').value="";renderMealDraft();renderFoodSuggestions()}};$('foodSuggestions').onclick=e=>{const f=foods.find(x=>x.id===e.target.dataset.addFood);if(f){addFoodToDraft(f);renderMealDraft()}};$('mealItems').oninput=e=>{const i=Number(e.target.dataset.portion??e.target.dataset.carbs);if(e.target.dataset.portion!==undefined)mealDraft[i].portion=e.target.value;if(e.target.dataset.carbs!==undefined)mealDraft[i].carbs=e.target.value};$('mealItems').onclick=e=>{if(e.target.dataset.removeFood!==undefined){mealDraft.splice(Number(e.target.dataset.removeFood),1);renderMealDraft()}};
+function resetHealthForm(){$('healthForm').reset();$('healthId').value="";$('healthTime').value=localInput();mealDraft=[];renderMealDraft();$('manualCard').hidden=true;$('healthFormTitle').textContent="New event"}
+$('parseHealth').onclick=parseCapture;$('showManual').onclick=()=>{$('manualCard').hidden=false;$('healthTime').value=localInput();switchHealthFields()};$('cancelHealth').onclick=resetHealthForm;document.querySelectorAll('[data-example]').forEach(b=>b.onclick=()=>{$('healthCapture').value=b.dataset.example;parseCapture()});
+$('healthForm').onsubmit=e=>{e.preventDefault();const id=$('healthId').value||uuid(),type=$('healthType').value,old=health.find(x=>x.id===id);const event={id,type,occurredAt:new Date($('healthTime').value).toISOString(),value:type==="glucose"?Number($('glucoseValue').value):null,unit:type==="glucose"?"mmol/L":null,context:type==="glucose"?$('glucoseContext').value:null,notes:$('healthNotes').value.trim(),details:type==="meal"?{items:mealDraft}:type==="medication"?{name:$('medicationName').value.trim(),dose:$('medicationDose').value.trim()}:old?.details||{},updatedAt:nowIso()};health=health.filter(x=>x.id!==id);health.push(event);persist();$('healthCapture').value="";resetHealthForm();renderHealth();syncCloud()};
+function eventSummary(e){if(e.type==="glucose")return `<strong>${e.value??'—'} mmol/L</strong> ${esc(e.context||'')}`;if(e.type==="meal")return `<strong>Meal</strong><div>${(e.details?.items||[]).map(i=>`<span class="pill">${esc(i.name)}${i.carbs!==''&&i.carbs!=null?` · ${esc(i.carbs)}g carb`:''}</span>`).join('')}</div>`;if(e.type==="medication")return `<strong>${esc(e.details?.name||'Medication')}</strong> ${esc(e.details?.dose||'')}`;return `<strong>${esc(e.type[0].toUpperCase()+e.type.slice(1))}</strong>`}
+function renderHealth(){const sorted=[...health].sort((a,b)=>new Date(b.occurredAt)-new Date(a.occurredAt)),g=sorted.find(e=>e.type==="glucose"&&e.value!=null);$('latestGlucose').textContent=g?g.value:'—';$('healthTimeline').innerHTML=sorted.length?sorted.map(e=>`<article class="item event"><div class="event-icon">${e.type==='glucose'?'G':e.type==='meal'?'M':e.type==='medication'?'Rx':'•'}</div><div>${eventSummary(e)}${e.notes?`<div class="meta">${esc(e.notes)}</div>`:''}<div class="meta">${new Date(e.occurredAt).toLocaleString()}</div></div><div class="toolbar event-actions"><button class="btn" data-edit-health="${e.id}">Edit</button><button class="btn danger" data-del-health="${e.id}">Delete</button></div></article>`).join(''):'<div class="empty">No health events yet.</div>';$('foodLibrary').innerHTML=foods.length?[...foods].sort((a,b)=>(b.usageCount||0)-(a.usageCount||0)).map(f=>`<div class="item"><div class="item-head"><div><div class="item-title">${esc(f.name)}</div><div class="meta">${esc(f.portion||'No usual portion')} ${f.carbs!==''?`· ${esc(f.carbs)}g carb`:''}</div></div><button class="btn" data-edit-food="${f.id}">Edit</button></div></div>`).join(''):'<div class="empty">Foods are remembered when added to meals.</div>';renderFoodSuggestions()}
+$('healthTimeline').onclick=async e=>{const edit=e.target.dataset.editHealth,del=e.target.dataset.delHealth;if(del&&confirm("Delete this health event?")){health=health.filter(x=>x.id!==del);persist();renderHealth();await deleteCloud("health_events",del)}if(edit){const x=health.find(v=>v.id===edit);$('manualCard').hidden=false;$('healthFormTitle').textContent="Edit event";$('healthId').value=x.id;$('healthType').value=x.type;$('healthTime').value=localInput(x.occurredAt);$('glucoseValue').value=x.value??'';$('glucoseContext').value=x.context||'unspecified';$('healthNotes').value=x.notes||'';$('medicationName').value=x.details?.name||'';$('medicationDose').value=x.details?.dose||'';mealDraft=x.details?.items?[...x.details.items]:[];switchHealthFields();renderMealDraft();$('manualCard').scrollIntoView({behavior:'smooth'})}};
+$('foodLibrary').onclick=e=>{const f=foods.find(x=>x.id===e.target.dataset.editFood);if(!f)return;$('foodId').value=f.id;$('foodName').value=f.name;$('foodAliases').value=(f.aliases||[]).join(', ');$('foodPortion').value=f.portion||'';$('foodCarbs').value=f.carbs;$('editFoodDialog').showModal()};$('foodForm').onsubmit=e=>{e.preventDefault();const f=foods.find(x=>x.id===$('foodId').value);f.name=$('foodName').value.trim();f.aliases=$('foodAliases').value.split(',').map(s=>s.trim()).filter(Boolean);f.portion=$('foodPortion').value.trim();f.carbs=$('foodCarbs').value;f.updatedAt=nowIso();persist();$('editFoodDialog').close();renderHealth();syncCloud()};
+$('exportHealth').onclick=()=>download(`diabetes-${dateKey(new Date())}.json`,'application/json',JSON.stringify({app:'Stolen Minutes Diabetes',version:1,exportedAt:nowIso(),healthEvents:health,foods},null,2));$('exportHealthCsv').onclick=()=>{const rows=[['type','occurred_at','value','unit','context','notes','details'],...health.map(e=>[e.type,e.occurredAt,e.value??'',e.unit??'',e.context??'',e.notes??'',JSON.stringify(e.details||{})])];download(`diabetes-${dateKey(new Date())}.csv`,'text/csv',rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'))};$('exportActivities').onclick=()=>{const rows=[['activity','started_at','ended_at','elapsed_ms'],...activities.map(x=>[x.activity,x.startedAt,x.endedAt,x.elapsedMs])];download('stolen-minutes.csv','text/csv',rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'))};
+$('login').onclick=login;$('sync').onclick=syncCloud;$('logout').onclick=async()=>{await supabase.auth.signOut({scope:'local'});session=null;renderAuth()};
+function renderAll(){$('todayLabel').textContent=new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long',year:'numeric'});renderAuth();renderTimer();renderFragments();renderHealth()}
+async function init(){renderAll();if(supabase){const {data}=await supabase.auth.getSession();session=data.session;renderAuth();if(session)syncCloud();supabase.auth.onAuthStateChange((_e,s)=>{session=s;renderAuth();if(s)setTimeout(syncCloud,0)})}if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{})}
+window.addEventListener('online',()=>{renderAuth();syncCloud()});window.addEventListener('offline',renderAuth);init();
+</script></body></html>
