@@ -527,6 +527,12 @@ function renderTimer() {
     .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
 
   $("todayTotal").textContent = duration(items.reduce((sum, item) => sum + item.elapsedMs, 0));
+  const weekCutoff = Date.now() - 7 * 86400000;
+  const weekly = activities.filter(item => new Date(item.startedAt).getTime() >= weekCutoff);
+  const byActivity = weekly.reduce((map, item) => map.set(item.activity, (map.get(item.activity) || 0) + item.elapsedMs), new Map());
+  const top = [...byActivity.entries()].sort((a, b) => b[1] - a[1])[0];
+  $("weekTimeTotal").textContent = duration(weekly.reduce((sum, item) => sum + item.elapsedMs, 0));
+  $("weekTopActivity").textContent = top ? `Most recorded: ${top[0]} · ${duration(top[1])}` : "No completed time entries this week.";
   $("activityList").innerHTML = items.length
     ? items.map(item => `
       <div class="item">
@@ -586,6 +592,18 @@ function renderFragments() {
         </article>`).join("")
     : '<div class="empty">No fragments yet.</div>';
 }
+
+$("exportFragmentDraft").onclick = () => {
+  const body = $("fragmentBody").value.trim();
+  if (!body) return;
+  download(`quiet-timer-fragment-${dateKey(new Date())}.json`, "application/json", JSON.stringify({
+    schema: "bloody-daves/suite-transfer/v1",
+    kind: "fragment-draft",
+    source: "quiet-timer",
+    createdAt: nowIso(),
+    payload: { title: $("fragmentTitle").value.trim() || "Quiet Timer note", body, tags: $("fragmentTags").value.split(",").map(value => value.trim()).filter(Boolean) }
+  }, null, 2));
+};
 
 $("fragmentForm").onsubmit = async event => {
   event.preventDefault();
@@ -1315,6 +1333,14 @@ function exportHealthJson() {
   setCaptureStatus("Health data exported as JSON.", "ok");
 }
 
+function exportWeeklyReview() {
+  const summary = sevenDaySummary();
+  const cutoff = Date.now() - 7 * 86400000;
+  const records = health.filter(item => new Date(item.occurredAt).getTime() >= cutoff).map(item => ({ type: item.type, occurredAt: item.occurredAt, notes: item.notes || "" }));
+  download(`quiet-timer-7-day-review-${dateKey(new Date())}.json`, "application/json", JSON.stringify({ schema: "bloody-daves/quiet-timer-review/v1", createdAt: nowIso(), summary: { readings: summary.readings, glucoseAverage: summary.average, estimatedCarbs: summary.carbs }, records }, null, 2));
+  setCaptureStatus("7-day review exported as JSON.", "ok");
+}
+
 function exportHealthCsv() {
   const rows = [[
     "type",
@@ -1345,6 +1371,7 @@ function exportHealthCsv() {
 
 $("exportHealth").onclick = exportHealthJson;
 $("exportHealthCsv").onclick = exportHealthCsv;
+$("exportWeekReview").onclick = exportWeeklyReview;
 $("storageExport").onclick = exportHealthJson;
 $("dismissStorageWarning").onclick = () => { $("storageWarning").hidden = true; };
 $("checkStorage").onclick = () => checkStoragePressure(true);
