@@ -1,13 +1,13 @@
 {
-  "name": "Stolen Minutes + Diabetes",
-  "short_name": "Stolen Minutes",
-  "description": "Offline-first timer, fragments reader and simple spoken diabetes record.",
+  "name": "Bloody Dave's Quiet Timer",
+  "short_name": "Quiet Timer",
+  "description": "A private local-first timer, notes space, and personal records companion.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f5f1e9",
-  "theme_color": "#991b1b",
+  "theme_color": "#1d251f",
   "icons": [
     {
       "src": "/icons/icon-192.png",
