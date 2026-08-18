@@ -20,11 +20,11 @@
 
 <section class="view" id="timerView">
 <div class="card recorder"><p class="eyebrow">Time auditor</p><p class="activity" id="activityLabel">Press, then name the activity</p><p class="timer" id="timer">00:00:00</p><button class="record" id="record">START</button><div class="row" id="activityFallback" hidden style="margin-top:16px"><input class="field grow" id="activityInput" placeholder="Activity"><button class="btn" id="applyActivity">Use</button></div></div>
-<div class="card"><div class="row" style="justify-content:space-between"><h2>Today</h2><strong id="todayTotal">0 min</strong></div><div class="list" id="activityList"></div><div class="toolbar"><button class="btn" id="exportActivities">Export CSV</button></div></div>
+<div class="card"><div class="row" style="justify-content:space-between"><h2>Today</h2><strong id="todayTotal">0 min</strong></div><div class="list" id="activityList"></div><div class="toolbar"><button class="btn" id="exportActivities">Export CSV</button></div></div><div class="card"><div class="row" style="justify-content:space-between"><h2>This week</h2><strong id="weekTimeTotal">0 min</strong></div><p class="note" id="weekTopActivity">No completed time entries this week.</p></div>
 </section>
 
 <section class="view" id="fragmentsView" hidden>
-<div class="card"><p class="eyebrow">Capture</p><h2>New Fragment</h2><form class="grid" id="fragmentForm" style="margin-top:14px"><input class="field" id="fragmentTitle" maxlength="200" placeholder="Optional title"><textarea class="field capture" id="fragmentBody" required placeholder="Type, paste, or dictate…"></textarea><input class="field" id="fragmentTags" placeholder="Tags, separated by commas"><button class="btn primary">Save Fragment</button></form></div><div class="list" id="fragmentList"></div>
+<div class="card"><p class="eyebrow">Capture</p><h2>New Fragment</h2><form class="grid" id="fragmentForm" style="margin-top:14px"><input class="field" id="fragmentTitle" maxlength="200" placeholder="Optional title"><textarea class="field capture" id="fragmentBody" required placeholder="Type, paste, or dictate…"></textarea><input class="field" id="fragmentTags" placeholder="Tags, separated by commas"><div class="toolbar"><button class="btn primary">Save Fragment</button><button class="btn" id="exportFragmentDraft" type="button">Export for Fragments</button></div></form><p class="note">Export creates a local review file. Nothing is sent to Fragments until you choose to import it there.</p></div><div class="list" id="fragmentList"></div>
 </section>
 
 <section class="view" id="diabetesView" hidden>
@@ -94,7 +94,7 @@
 <div class="card">
   <div class="row" style="justify-content:space-between"><h2>Timeline</h2><button class="btn" id="checkStorage" type="button">Check storage</button></div>
   <div class="list" id="healthTimeline"></div>
-  <div class="toolbar"><button class="btn" id="exportHealth" type="button">Export JSON</button><button class="btn" id="exportHealthCsv" type="button">Export CSV</button></div>
+  <div class="toolbar"><button class="btn" id="exportHealth" type="button">Export JSON</button><button class="btn" id="exportHealthCsv" type="button">Export CSV</button><button class="btn" id="exportWeekReview" type="button">Export 7-day review</button></div>
 </div>
 
 <div class="card">
