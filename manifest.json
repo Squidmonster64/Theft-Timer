@@ -1,7 +1,7 @@
 {
-  "name": "Bloody Dave's Quiet Timer",
-  "short_name": "Quiet Timer",
-  "description": "A private local-first timer, notes space, and personal records companion.",
+  "name": "Bloody Dave's Stolen Minutes",
+  "short_name": "Stolen Minutes",
+  "description": "A private local-first record of where the day actually went.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

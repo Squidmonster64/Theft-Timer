@@ -21,7 +21,8 @@ const keys = {
   foods: "stolen-minutes-foods-v1",
   deletedHealth: "stolen-minutes-deleted-health-v1",
   deletedFoods: "stolen-minutes-deleted-foods-v1",
-  deletedFragments: "stolen-minutes-deleted-fragments-v1"
+  deletedFragments: "stolen-minutes-deleted-fragments-v1",
+  weekPlan: "stolen-minutes-week-plan-v1"
 };
 
 const load = (key, fallback) => {
@@ -114,6 +115,7 @@ async function dbPut(key, value) {
 let activities = load(keys.activities, []);
 let fragments = load(keys.fragments, []);
 let active = load(keys.active, null);
+let weekPlan = load(keys.weekPlan, { weekStart: "", plannedMinutes: 0, updatedAt: "" });
 let health = load(keys.health, []);
 let foods = load(keys.foods, []);
 let deletedHealth = load(keys.deletedHealth, []);
@@ -169,6 +171,15 @@ const elapsed = milliseconds => {
   const total = Math.max(0, Math.floor(milliseconds / 1000));
   return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
 };
+const reportedDuration = milliseconds => milliseconds > 0 ? duration(milliseconds) : "0 min";
+const weekStartKey = (value = new Date()) => {
+  const date = new Date(value);
+  const offset = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - offset);
+  date.setHours(0, 0, 0, 0);
+  return dateKey(date);
+};
+const categorySuggestion = activity => /clean|repair|fix|admin|insurance|renew|problem/i.test(activity) ? "stolen" : /exercise|fishing|writing|project|family/i.test(activity) ? "claimed" : "neutral";
 
 function csvCell(value) {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
@@ -393,6 +404,7 @@ function persist() {
   saveLocal(keys.deletedHealth, deletedHealth);
   saveLocal(keys.deletedFoods, deletedFoods);
   saveLocal(keys.deletedFragments, deletedFragments);
+  saveLocal(keys.weekPlan, weekPlan);
   if (active) saveLocal(keys.active, active);
   else removeLocal(keys.active);
 
@@ -404,6 +416,7 @@ function persist() {
     deletedHealth: clone(deletedHealth),
     deletedFoods: clone(deletedFoods),
     deletedFragments: clone(deletedFragments),
+    weekPlan: clone(weekPlan),
     active: active ? clone(active) : null
   };
 
@@ -416,6 +429,7 @@ function persist() {
       dbPut(keys.deletedHealth, snapshot.deletedHealth),
       dbPut(keys.deletedFoods, snapshot.deletedFoods),
       dbPut(keys.deletedFragments, snapshot.deletedFragments),
+      dbPut(keys.weekPlan, snapshot.weekPlan),
       dbPut(keys.active, snapshot.active)
     ]))
     .then(() => checkStoragePressure())
@@ -433,7 +447,7 @@ function persist() {
 }
 
 async function hydrateDurableState() {
-  const [a, f, h, fd, dh, df, dfr, ac] = await Promise.all([
+  const [a, f, h, fd, dh, df, dfr, wp, ac] = await Promise.all([
     dbGet(keys.activities),
     dbGet(keys.fragments),
     dbGet(keys.health),
@@ -441,6 +455,7 @@ async function hydrateDurableState() {
     dbGet(keys.deletedHealth),
     dbGet(keys.deletedFoods),
     dbGet(keys.deletedFragments),
+    dbGet(keys.weekPlan),
     dbGet(keys.active)
   ]);
 
@@ -451,6 +466,7 @@ async function hydrateDurableState() {
   if (Array.isArray(dh)) deletedHealth = [...new Set([...deletedHealth, ...dh])];
   if (Array.isArray(df)) deletedFoods = [...new Set([...deletedFoods, ...df])];
   if (Array.isArray(dfr)) deletedFragments = [...new Set([...deletedFragments, ...dfr])];
+  if (wp && typeof wp === "object" && typeof wp.weekStart === "string" && typeof wp.plannedMinutes === "number") weekPlan = wp;
   if (ac && (!active || new Date(ac.startedAt) >= new Date(active.startedAt))) active = ac;
 
   health = health.filter(item => !deletedHealth.includes(item.id));
@@ -510,57 +526,59 @@ function renderTimer() {
     $("record").classList.add("running");
     $("activityLabel").textContent = active.activity || "Name the activity";
     clearInterval(ticker);
-    ticker = setInterval(() => {
-      $("timer").textContent = elapsed(Date.now() - new Date(active.startedAt));
-    }, 500);
+    ticker = setInterval(() => { $("timer").textContent = elapsed(Date.now() - new Date(active.startedAt)); }, 500);
   } else {
     $("record").textContent = "START";
     $("record").classList.remove("running");
-    $("activityLabel").textContent = "Press, then name the activity";
+    $("activityLabel").textContent = "Start, then name the activity.";
     $("timer").textContent = "00:00:00";
     clearInterval(ticker);
   }
-
   const today = dateKey(new Date());
-  const items = activities
-    .filter(item => dateKey(new Date(item.startedAt)) === today)
-    .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
-
-  $("todayTotal").textContent = duration(items.reduce((sum, item) => sum + item.elapsedMs, 0));
-  const weekCutoff = Date.now() - 7 * 86400000;
-  const weekly = activities.filter(item => new Date(item.startedAt).getTime() >= weekCutoff);
+  const items = activities.filter(item => dateKey(new Date(item.startedAt)) === today).sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+  const totalToday = items.reduce((sum, item) => sum + item.elapsedMs, 0);
+  $("todayTotal").textContent = reportedDuration(totalToday);
+  const byCategory = items.reduce((map, item) => map.set(item.category || "uncategorised", (map.get(item.category || "uncategorised") || 0) + item.elapsedMs), new Map());
+  $("todayTracked").textContent = items.length ? [...byCategory.entries()].map(([name, time]) => `${name[0].toUpperCase()}${name.slice(1)} ${reportedDuration(time)}`).join(" · ") : "No time recorded yet.";
+  const weekStart = weekStartKey();
+  const weekly = activities.filter(item => weekStartKey(new Date(item.startedAt)) === weekStart);
   const byActivity = weekly.reduce((map, item) => map.set(item.activity, (map.get(item.activity) || 0) + item.elapsedMs), new Map());
   const top = [...byActivity.entries()].sort((a, b) => b[1] - a[1])[0];
-  $("weekTimeTotal").textContent = duration(weekly.reduce((sum, item) => sum + item.elapsedMs, 0));
+  const totalWeek = weekly.reduce((sum, item) => sum + item.elapsedMs, 0);
+  $("weekTimeTotal").textContent = reportedDuration(totalWeek);
   $("weekTopActivity").textContent = top ? `Most recorded: ${top[0]} · ${duration(top[1])}` : "No completed time entries this week.";
-  $("activityList").innerHTML = items.length
-    ? items.map(item => `
-      <div class="item">
-        <div class="item-head">
-          <span class="item-title">${esc(item.activity)}</span>
-          <strong>${duration(item.elapsedMs)}</strong>
-        </div>
-        <div class="meta">${new Date(item.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
-      </div>`).join("")
-    : '<div class="empty">No entries today.</div>';
+  const planned = weekPlan.weekStart === weekStart ? Number(weekPlan.plannedMinutes || 0) : 0;
+  const claimedActual = weekly.filter(item => item.category === "claimed").reduce((sum, item) => sum + item.elapsedMs, 0);
+  $("plannedWeekMinutes").value = planned || "";
+  $("plannedVsActual").textContent = planned ? `Planned focused work: ${reportedDuration(planned * 60000)} · claimed time recorded: ${reportedDuration(claimedActual)} · all tracked time: ${reportedDuration(totalWeek)}.` : "Set a plan here or bring one across from Daybook when you choose.";
+  $("activityList").innerHTML = items.length ? items.map(item => `
+      <div class="item"><div class="item-head"><span class="item-title">${esc(item.activity)}</span><strong>${duration(item.elapsedMs)}</strong></div>
+      <div class="meta">${new Date(item.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · ${(item.category || "uncategorised").replace(/^./, letter => letter.toUpperCase())}${item.linkedJobId ? ` · linked job ${esc(item.linkedJobId)}` : ""}</div></div>`).join("") : '<div class="empty">No entries today.</div>';
 }
 
 $("record").onclick = async () => {
   if (active) {
-    activities.push({
+    const completed = {
       id: active.id,
       activity: active.activity || "Unlabelled activity",
       startedAt: active.startedAt,
       endedAt: nowIso(),
       elapsedMs: Date.now() - new Date(active.startedAt),
+      linkedJobId: active.linkedJobId || "",
+      category: "",
       updatedAt: nowIso()
-    });
+    };
+    activities.push(completed);
     active = null;
     await persist();
+    $("categoryActivity").textContent = completed.activity;
+    $("categorySuggestion").textContent = `Suggested: ${categorySuggestion(completed.activity).replace(/^./, letter => letter.toUpperCase())}. Change it if that is wrong.`;
+    $("categoryReview").dataset.activityId = completed.id;
+    $("categoryReview").hidden = false;
     renderTimer();
     syncCloud();
   } else {
-    active = { id: uuid(), activity: "", startedAt: nowIso() };
+    active = { id: uuid(), activity: "", linkedJobId: "", startedAt: nowIso() };
     await persist();
     $("activityFallback").hidden = false;
     renderTimer();
@@ -571,11 +589,33 @@ $("record").onclick = async () => {
 $("applyActivity").onclick = async () => {
   if (active && $("activityInput").value.trim()) {
     active.activity = $("activityInput").value.trim();
+    active.linkedJobId = $("linkedJobInput").value.trim();
     await persist();
     $("activityFallback").hidden = true;
     $("activityInput").value = "";
+    $("linkedJobInput").value = "";
     renderTimer();
   }
+};
+
+document.querySelectorAll(".category-choice").forEach(button => {
+  button.onclick = async () => {
+    const item = activities.find(activity => activity.id === $("categoryReview").dataset.activityId);
+    if (!item) return;
+    item.category = button.dataset.category;
+    item.updatedAt = nowIso();
+    await persist();
+    $("categoryReview").hidden = true;
+    renderTimer();
+    syncCloud();
+  };
+});
+
+$("saveWeekPlan").onclick = async () => {
+  const plannedMinutes = Math.max(0, Number($("plannedWeekMinutes").value || 0));
+  weekPlan = { weekStart: weekStartKey(), plannedMinutes, updatedAt: nowIso() };
+  await persist();
+  renderTimer();
 };
 
 // Fragments
