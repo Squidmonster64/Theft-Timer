@@ -44,7 +44,7 @@ test('mandatory viewport gates are encoded in CSS', () => {
   assert.match(css, /820×1180/);
   assert.match(css, /1180×820/);
   assert.match(css, /1440×900/);
-  assert.match(css, /@media \(max-width: 390px\)/);
+  assert.match(css, /@media \(max-width: 480px\)/);
   assert.match(css, /@media \(max-width: 820px\)/);
   assert.match(css, /@media \(min-width: 1024px\)/);
   assert.match(css, /@media \(min-width: 1180px\)/);

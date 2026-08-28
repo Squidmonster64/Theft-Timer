@@ -375,7 +375,8 @@ dialog::backdrop { background: rgba(31, 33, 30, .45); }
   .summary-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-@media (max-width: 390px) {
+@media (max-width: 480px) {
+  /* Phone gate includes 390×844 */
   .suite-nav .date { max-width: 9.5rem; }
   .tabs { gap: 6px; }
   .tab { padding: 0 6px; font-size: 12px; }
