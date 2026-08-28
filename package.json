@@ -4,7 +4,8 @@
   "private": true,
   "description": "Stolen Minutes PWA with simple spoken diabetes capture",
   "scripts": {
-    "start": "serve -s . -l ${PORT:-3000}"
+    "start": "serve -s . -l ${PORT:-3000}",
+    "test": "node --test suite-nav.test.mjs recovery-ui.test.mjs"
   },
   "dependencies": {
     "serve": "^14.2.4"

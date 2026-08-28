@@ -1,8 +1,9 @@
-const CACHE = "stolen-minutes-v8-simple-diabetes";
+const CACHE = "stolen-minutes-v9-suite-recovery";
 const ASSETS = [
   "/",
   "/index.html",
   "/app.js",
+  "/stolen-minutes-recovery.css",
   "/manifest.json",
   "/config.js",
   "/icons/icon-192.png",
