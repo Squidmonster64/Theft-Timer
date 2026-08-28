@@ -1,117 +1,235 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#1d251f"><meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="manifest" href="/manifest.json"><title>Bloody Dave's Stolen Minutes</title>
-<style>
-:root{--ink:#171717;--muted:#737373;--line:#dedbd4;--paper:#f5f1e9;--card:#fffdf8;--red:#b42318;--green:#166534;--amber:#a16207;--shadow:0 16px 45px rgba(23,23,23,.10)}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink)}body{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}button,input,textarea,select{font:inherit}.app{width:min(820px,100%);margin:auto;padding:18px 14px 44px}header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px}h1,h2,h3{font-family:Georgia,serif}h1{margin:0;font-size:clamp(1.55rem,7vw,2.35rem)}h2{margin:0;font-size:1.35rem}.date,.muted,.note{color:var(--muted)}.date{text-align:right;font-size:.88rem}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}.tab,.btn{border:0;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer;background:#e7e5e4;color:var(--ink)}.tab.active,.btn.primary{background:#171717;color:#fff}.btn.danger{background:#fee2e2;color:#991b1b}.btn.good{background:#dcfce7;color:#166534}.view[hidden]{display:none!important}.card{background:var(--card);border:1px solid rgba(0,0,0,.05);border-radius:24px;padding:20px;box-shadow:var(--shadow);margin-bottom:18px}.cloud{background:rgba(255,255,255,.62);box-shadow:none}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}.grow{flex:1 1 220px}.field{width:100%;border:1px solid #c8c6c0;border-radius:12px;padding:12px 13px;background:#fff}.grid{display:grid;gap:12px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.eyebrow{margin:0 0 8px;color:var(--muted);font-size:.72rem;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.status{font-size:.82rem;line-height:1.4;margin:8px 0 0}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#a3a3a3;margin-right:6px}.dot.ok{background:var(--green)}.dot.warn{background:var(--amber)}.recorder{text-align:center;padding:30px 20px}.activity{font:700 clamp(1.4rem,5vw,2rem)/1.15 Georgia,serif;min-height:2.3rem}.timer{font-size:clamp(2rem,12vw,4rem);font-weight:900;font-variant-numeric:tabular-nums;margin:14px 0}.record{width:150px;height:150px;border:0;border-radius:50%;background:var(--red);color:#fff;font-size:1.1rem;font-weight:900;cursor:pointer}.record.running{background:#7f1d1d}.list{display:grid;gap:10px}.item{background:rgba(255,255,255,.66);border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:14px}.item-head{display:flex;justify-content:space-between;gap:10px}.item-title{font-weight:900}.meta{color:var(--muted);font-size:.8rem;margin-top:5px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.metric{font-size:1.9rem;font-weight:900}.capture{font-size:1.08rem;min-height:88px;resize:vertical}.timeline-date{font-weight:900;margin:16px 2px 7px}.event{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:start}.event-icon{width:42px;height:42px;border-radius:14px;background:#eee9df;display:grid;place-items:center;font-weight:900}.pill{display:inline-block;border-radius:999px;background:#eee9df;padding:4px 8px;font-size:.75rem;font-weight:800;margin:4px 4px 0 0}.suggestions{display:flex;gap:7px;flex-wrap:wrap}.suggestions button{border:1px solid var(--line);background:white;border-radius:999px;padding:7px 10px;cursor:pointer}.food-row{display:grid;grid-template-columns:1fr 100px 100px auto;gap:8px;align-items:center}.fragment-body{white-space:pre-wrap;line-height:1.45;max-height:10em;overflow:hidden}.empty{text-align:center;color:var(--muted);padding:18px}dialog{width:min(620px,calc(100% - 24px));border:0;border-radius:20px;padding:20px;box-shadow:var(--shadow)}dialog::backdrop{background:rgba(0,0,0,.45)}@media(max-width:600px){.grid.two,.grid.three{grid-template-columns:1fr}.food-row{grid-template-columns:1fr 80px}.food-row .food-carbs{grid-column:1}.event{grid-template-columns:42px 1fr}.event-actions{grid-column:2}.card{padding:17px}.tabs{gap:5px}.tab{padding:11px 5px;font-size:.84rem}}
-</style>
-
-<style>
-.suite-kicker{margin:0 0 5px;color:#d8b47a;font-size:.68rem;letter-spacing:.14em;font-weight:900;text-transform:uppercase}.suite-kicker .family-control{color:inherit;text-decoration:none}.suite-kicker .family-control:hover{text-decoration:underline}.suite-title{display:grid;gap:2px}.suite-title h1{color:#1d251f}.suite-title h1 strong{color:#a35522}.suite-nav{display:flex;gap:12px;align-items:center;font-size:.8rem}.suite-nav a{color:var(--muted);text-decoration:none;font-weight:800}.suite-nav a:hover,.suite-nav a.current{color:#a35522}.suite-nav span{color:var(--muted)}
-.capture-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}.capture-button{min-height:145px;border:0;border-radius:22px;padding:20px 12px;color:#fff;font-weight:900;cursor:pointer;box-shadow:0 12px 24px rgba(0,0,0,.13);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px}.capture-button span{font:700 clamp(1.45rem,5vw,2rem)/1 Georgia,serif}.capture-button small{font-size:.78rem;line-height:1.3;opacity:.9}.capture-button.glucose{background:#991b1b}.capture-button.food{background:#166534}.capture-button.event-capture{background:#3f3f46}.capture-status{margin:14px 0 0;padding:10px 12px;border-radius:12px;background:#eee9df;font-size:.9rem;line-height:1.4}.capture-status.ok{background:#dcfce7;color:#166534}.capture-status.warn{background:#fef3c7;color:#92400e}.summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:16px}.summary-box{background:#f0ece3;border-radius:15px;padding:14px;display:grid;gap:5px}.summary-box strong{font-size:1.35rem}.summary-box span{font-size:.78rem;color:var(--muted)}.warning-card{border:2px solid #d97706;background:#fffbeb}.compact-actions{justify-content:flex-end}.capture-dialog{max-width:600px}.rapid-card{border-top:6px solid #171717}@media(max-width:600px){.capture-actions{grid-template-columns:1fr}.capture-button{min-height:108px}.summary-grid{grid-template-columns:1fr}.compact-actions{flex-direction:column;align-items:stretch}.compact-actions .btn{width:100%}}
-</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f1e7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<title>Stolen Minutes — 5 Million Minutes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/stolen-minutes-recovery.css">
 </head>
-<body><main class="app">
-    <header><div class="suite-title"><p class="suite-kicker"><a class="family-control" href="https://control.hope-johnstone.com">5 Million Minutes</a></p><h1><strong>Stolen</strong> Minutes</h1></div><div><nav class="suite-nav" aria-label="Bloody Dave's Suite"><a href="https://recipes.bloodydaves.com">Recipes</a><a href="https://fragments.hope-johnstone.com">Fragments</a><a class="current" href="#">Stolen Minutes</a><a href="https://list.bloodydaves.com">Get List</a><a href="https://lift.bloodydaves.com">Lift Log</a></nav><div class="date" id="todayLabel"></div></div></header>
-<nav class="tabs"><button class="tab active" data-mode="timer">Time</button><button class="tab" data-mode="fragments">Notes</button><button class="tab" data-mode="diabetes">Personal records</button></nav>
-<section class="card cloud"><div class="row" id="signedOut"><input class="field grow" id="email" type="email" placeholder="Email for secure sync"><button class="btn" id="login">Email login link</button></div><div class="row" id="signedIn" hidden><strong id="account"></strong><button class="btn" id="sync">Sync now</button><button class="btn" id="logout">Sign out</button></div><p class="status"><span class="dot" id="dot"></span><span id="cloudStatus">Local-only mode.</span></p></section>
-
-<section class="view" id="timerView">
-<div class="card recorder"><p class="eyebrow">WHERE DID THE DAY ACTUALLY GO?</p><p class="activity" id="activityLabel">Start, then name the activity.</p><p class="timer" id="timer">00:00:00</p><button class="record" id="record">START</button><div class="grid" id="activityFallback" hidden style="margin-top:16px"><input class="field" id="activityInput" placeholder="What are you doing?"><input class="field" id="linkedJobInput" placeholder="Optional Run & Maintain job ID"><button class="btn" id="applyActivity">Start this</button></div></div>
-<div class="card" id="categoryReview" hidden><p class="eyebrow">HOW DID THAT TIME FEEL?</p><h2 id="categoryActivity">Activity</h2><p class="note" id="categorySuggestion">Suggested: Neutral. Change it if that is wrong.</p><div class="toolbar"><button class="btn category-choice" data-category="stolen">Stolen</button><button class="btn category-choice" data-category="claimed">Claimed</button><button class="btn category-choice" data-category="neutral">Neutral</button></div></div>
-<div class="card"><div class="row" style="justify-content:space-between"><h2>Stolen today</h2><strong id="todayTotal">0 min</strong></div><p class="note" id="todayTracked">No time recorded yet.</p><div class="list" id="activityList"></div><div class="toolbar"><button class="btn" id="exportActivities">Export CSV</button></div></div><div class="card"><div class="row" style="justify-content:space-between"><h2>This week</h2><strong id="weekTimeTotal">0 min</strong></div><p class="note" id="weekTopActivity">No completed time entries this week.</p></div><div class="card"><p class="eyebrow">PLANNED AND ACTUAL</p><h2>What did you mean to spend?</h2><label class="note" for="plannedWeekMinutes">Planned focused work this week</label><div class="row"><input class="field grow" id="plannedWeekMinutes" type="number" min="0" step="15" placeholder="Minutes"><button class="btn" id="saveWeekPlan" type="button">Save plan</button></div><p class="note" id="plannedVsActual">Set a plan here or bring one across from Daybook when you choose.</p></div>
-</section>
-
-<section class="view" id="fragmentsView" hidden>
-<div class="card"><p class="eyebrow">Capture</p><h2>New Fragment</h2><form class="grid" id="fragmentForm" style="margin-top:14px"><input class="field" id="fragmentTitle" maxlength="200" placeholder="Optional title"><textarea class="field capture" id="fragmentBody" required placeholder="Type, paste, or dictate…"></textarea><input class="field" id="fragmentTags" placeholder="Tags, separated by commas"><div class="toolbar"><button class="btn primary">Save Fragment</button><button class="btn" id="exportFragmentDraft" type="button">Export for Fragments</button></div></form><p class="note">Export creates a local review file. Nothing is sent to Fragments until you choose to import it there.</p></div><div class="list" id="fragmentList"></div>
-</section>
-
-<section class="view" id="diabetesView" hidden>
-<div class="card rapid-card">
-  <p class="eyebrow">Speak and save</p>
-  <h2>What are you recording?</h2>
-  <p class="note">Tap one button and speak. Glucose and Food use the button-press time. Event uses the time spoken in the transcription.</p>
-  <div class="capture-actions">
-    <button class="capture-button glucose" id="glucoseCapture" type="button"><span>Glucose</span><small>“6.8 before breakfast”</small></button>
-    <button class="capture-button food" id="foodCapture" type="button"><span>Food</span><small>“Two eggs and toast”</small></button>
-    <button class="capture-button event-capture" id="eventCapture" type="button"><span>Event</span><small>“I had a hypo at 3am”</small></button>
+<body>
+<header class="suite-header">
+  <div class="suite-brand">
+    <a class="family-control" href="https://control.hope-johnstone.com">5 Million Minutes</a>
+    <a class="app-home" href="/"><strong>Stolen Minutes</strong></a>
   </div>
-  <p class="capture-status" id="captureStatus">Records save on this device first, then sync to Supabase when signed in.</p>
-  <div class="toolbar"><button class="btn" id="showManual" type="button">Edit or enter manually</button></div>
-</div>
+  <nav class="suite-nav" aria-label="5 Million Minutes">
+    <a href="https://control.hope-johnstone.com">Control</a>
+    <div class="date" id="todayLabel"></div>
+  </nav>
+</header>
 
-<div class="card warning-card" id="storageWarning" hidden>
-  <h2>Export recommended</h2>
-  <p id="storageWarningText">Storage is getting low. Export your records now.</p>
-  <p class="meta" id="storageDetails"></p>
-  <div class="toolbar"><button class="btn primary" id="storageExport" type="button">Export JSON now</button><button class="btn" id="dismissStorageWarning" type="button">Dismiss</button></div>
-</div>
+<main class="app">
+  <nav class="tabs" aria-label="Stolen Minutes sections">
+    <button class="tab active" data-mode="timer">Time</button>
+    <button class="tab" data-mode="fragments">Notes</button>
+    <button class="tab" data-mode="diabetes">Personal records</button>
+  </nav>
 
-<div class="card summary-card">
-  <div class="row" style="justify-content:space-between"><h2>Recent summary</h2><div><span class="metric" id="latestGlucose">—</span> <span class="muted">mmol/L latest</span></div></div>
-  <div class="summary-grid">
-    <div class="summary-box"><strong id="sevenDayGlucose">—</strong><span>7-day glucose average</span></div>
-    <div class="summary-box"><strong id="sevenDayReadings">0</strong><span>readings in 7 days</span></div>
-    <div class="summary-box"><strong id="sevenDayCarbs">0</strong><span>estimated carbs in 7 days</span></div>
-  </div>
-</div>
-
-<div class="card" id="manualCard" hidden>
-  <h2 id="healthFormTitle">Edit record</h2>
-  <form class="grid" id="healthForm" style="margin-top:14px">
-    <input type="hidden" id="healthId">
-    <div class="grid two">
-      <select class="field" id="healthType">
-        <option value="glucose">Glucose</option>
-        <option value="meal">Food</option>
-        <option value="event">Event</option>
-        <option value="note">Note</option>
-      </select>
-      <input class="field" id="healthTime" type="datetime-local" required>
+  <section class="cloud-strip">
+    <div class="row" id="signedOut">
+      <input class="field grow" id="email" type="email" placeholder="Email for secure sync">
+      <button class="btn" id="login">Email login link</button>
     </div>
-    <div id="glucoseFields" class="grid two">
-      <input class="field" id="glucoseValue" type="number" step="0.1" min="0" placeholder="Glucose mmol/L">
-      <select class="field" id="glucoseContext">
-        <option value="unspecified">Context</option>
-        <option value="fasting">Fasting</option>
-        <option value="before meal">Before meal</option>
-        <option value="after meal">After meal</option>
-        <option value="bedtime">Bedtime</option>
-      </select>
+    <div class="row" id="signedIn" hidden>
+      <strong id="account"></strong>
+      <button class="btn" id="sync">Sync now</button>
+      <button class="btn" id="logout">Sign out</button>
     </div>
-    <div id="mealFields" class="grid" hidden>
-      <div class="row"><input class="field grow" id="foodSearch" placeholder="Add remembered food"><button class="btn" id="addFood" type="button">Add</button></div>
-      <div class="suggestions" id="foodSuggestions"></div>
-      <div class="list" id="mealItems"></div>
+    <p class="status"><span class="dot" id="dot"></span><span id="cloudStatus">Local-only mode.</span></p>
+  </section>
+
+  <section class="view" id="timerView">
+    <div class="timer-board">
+      <div class="timer-ops">
+        <section class="panel timer-strip" aria-label="Timer">
+          <div class="timer-copy">
+            <p class="eyebrow">Timer</p>
+            <p class="activity" id="activityLabel">Start, then name the activity.</p>
+          </div>
+          <p class="timer" id="timer">00:00:00</p>
+          <button class="record" id="record">START</button>
+          <div class="grid activity-fields" id="activityFallback" hidden>
+            <input class="field" id="activityInput" placeholder="What are you doing?">
+            <input class="field" id="linkedJobInput" placeholder="Optional Run & Maintain job ID">
+            <button class="btn" id="applyActivity">Start this</button>
+          </div>
+        </section>
+
+        <section class="panel category-strip" id="categoryReview" hidden>
+          <p class="eyebrow">How did that time feel?</p>
+          <h2 id="categoryActivity">Activity</h2>
+          <p class="note" id="categorySuggestion">Suggested: Neutral. Change it if that is wrong.</p>
+          <div class="toolbar">
+            <button class="btn category-choice" data-category="stolen">Stolen</button>
+            <button class="btn category-choice" data-category="claimed">Claimed</button>
+            <button class="btn category-choice" data-category="neutral">Neutral</button>
+          </div>
+        </section>
+
+        <section class="panel week-strip">
+          <div class="week-head">
+            <h2>This week</h2>
+            <strong id="weekTimeTotal">0 min</strong>
+          </div>
+          <p class="note" id="weekTopActivity">No completed time entries this week.</p>
+          <p class="eyebrow week-plan-label">Planned and actual</p>
+          <label class="note" for="plannedWeekMinutes">Planned focused work this week</label>
+          <div class="row">
+            <input class="field grow" id="plannedWeekMinutes" type="number" min="0" step="15" placeholder="Minutes">
+            <button class="btn" id="saveWeekPlan" type="button">Save plan</button>
+          </div>
+          <p class="note" id="plannedVsActual">Set a plan here or bring one across from Daybook when you choose.</p>
+        </section>
+      </div>
+
+      <section class="panel history-panel">
+        <div class="history-head">
+          <h2>Stolen today</h2>
+          <strong id="todayTotal">0 min</strong>
+        </div>
+        <p class="note" id="todayTracked">No time recorded yet.</p>
+        <div class="list" id="activityList"></div>
+        <div class="toolbar">
+          <button class="btn" id="exportActivities">Export CSV</button>
+        </div>
+      </section>
     </div>
-    <div id="eventFields" class="note" hidden>For Event records, edit the date and time above if speech interpretation was wrong.</div>
-    <textarea class="field" id="healthNotes" placeholder="Transcription or notes"></textarea>
-    <div class="toolbar"><button class="btn primary">Save record</button><button class="btn" id="cancelHealth" type="button">Cancel</button></div>
-  </form>
-</div>
+  </section>
 
-<div class="card">
-  <div class="row" style="justify-content:space-between"><h2>Timeline</h2><button class="btn" id="checkStorage" type="button">Check storage</button></div>
-  <div class="list" id="healthTimeline"></div>
-  <div class="toolbar"><button class="btn" id="exportHealth" type="button">Export JSON</button><button class="btn" id="exportHealthCsv" type="button">Export CSV</button><button class="btn" id="exportWeekReview" type="button">Export 7-day review</button></div>
-</div>
+  <section class="view" id="fragmentsView" hidden>
+    <section class="panel">
+      <p class="eyebrow">Capture</p>
+      <h2>New note</h2>
+      <form class="grid" id="fragmentForm" style="margin-top:10px">
+        <input class="field" id="fragmentTitle" maxlength="200" placeholder="Optional title">
+        <textarea class="field capture" id="fragmentBody" required placeholder="Type, paste, or dictate…"></textarea>
+        <input class="field" id="fragmentTags" placeholder="Tags, separated by commas">
+        <div class="toolbar">
+          <button class="btn primary">Save Fragment</button>
+          <button class="btn" id="exportFragmentDraft" type="button">Export for Fragments</button>
+        </div>
+      </form>
+      <p class="note">Export creates a local review file. Nothing is sent to Fragments until you choose to import it there.</p>
+    </section>
+    <div class="list" id="fragmentList"></div>
+  </section>
 
-<div class="card">
-  <h2>Personal food memory</h2>
-  <p class="note">Edit carbohydrate estimates or delete foods you no longer want remembered. Deleting a food does not delete older meal records.</p>
-  <div class="list" id="foodLibrary"></div>
-</div>
-</section>
+  <section class="view" id="diabetesView" hidden>
+    <section class="panel rapid-card">
+      <p class="eyebrow">Speak and save</p>
+      <h2>What are you recording?</h2>
+      <p class="note">Tap one button and speak. Glucose and Food use the button-press time. Event uses the time spoken in the transcription.</p>
+      <div class="capture-actions">
+        <button class="capture-button glucose" id="glucoseCapture" type="button"><span>Glucose</span><small>“6.8 before breakfast”</small></button>
+        <button class="capture-button food" id="foodCapture" type="button"><span>Food</span><small>“Two eggs and toast”</small></button>
+        <button class="capture-button event-capture" id="eventCapture" type="button"><span>Event</span><small>“I had a hypo at 3am”</small></button>
+      </div>
+      <p class="capture-status" id="captureStatus">Records save on this device first, then sync to Supabase when signed in.</p>
+      <div class="toolbar"><button class="btn" id="showManual" type="button">Edit or enter manually</button></div>
+    </section>
+
+    <section class="panel warning-card" id="storageWarning" hidden>
+      <h2>Export recommended</h2>
+      <p id="storageWarningText">Storage is getting low. Export your records now.</p>
+      <p class="meta" id="storageDetails"></p>
+      <div class="toolbar">
+        <button class="btn primary" id="storageExport" type="button">Export JSON now</button>
+        <button class="btn" id="dismissStorageWarning" type="button">Dismiss</button>
+      </div>
+    </section>
+
+    <section class="panel summary-card">
+      <div class="row" style="justify-content:space-between">
+        <h2>Recent summary</h2>
+        <div><span class="metric" id="latestGlucose">—</span> <span class="muted">mmol/L latest</span></div>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-box"><strong id="sevenDayGlucose">—</strong><span>7-day glucose average</span></div>
+        <div class="summary-box"><strong id="sevenDayReadings">0</strong><span>readings in 7 days</span></div>
+        <div class="summary-box"><strong id="sevenDayCarbs">0</strong><span>estimated carbs in 7 days</span></div>
+      </div>
+    </section>
+
+    <section class="panel" id="manualCard" hidden>
+      <h2 id="healthFormTitle">Edit record</h2>
+      <form class="grid" id="healthForm" style="margin-top:10px">
+        <input type="hidden" id="healthId">
+        <div class="grid two">
+          <select class="field" id="healthType">
+            <option value="glucose">Glucose</option>
+            <option value="meal">Food</option>
+            <option value="event">Event</option>
+            <option value="note">Note</option>
+          </select>
+          <input class="field" id="healthTime" type="datetime-local" required>
+        </div>
+        <div id="glucoseFields" class="grid two">
+          <input class="field" id="glucoseValue" type="number" step="0.1" min="0" placeholder="Glucose mmol/L">
+          <select class="field" id="glucoseContext">
+            <option value="unspecified">Context</option>
+            <option value="fasting">Fasting</option>
+            <option value="before meal">Before meal</option>
+            <option value="after meal">After meal</option>
+            <option value="bedtime">Bedtime</option>
+          </select>
+        </div>
+        <div id="mealFields" class="grid" hidden>
+          <div class="row">
+            <input class="field grow" id="foodSearch" placeholder="Add remembered food">
+            <button class="btn" id="addFood" type="button">Add</button>
+          </div>
+          <div class="suggestions" id="foodSuggestions"></div>
+          <div class="list" id="mealItems"></div>
+        </div>
+        <div id="eventFields" class="note" hidden>For Event records, edit the date and time above if speech interpretation was wrong.</div>
+        <textarea class="field" id="healthNotes" placeholder="Transcription or notes"></textarea>
+        <div class="toolbar">
+          <button class="btn primary">Save record</button>
+          <button class="btn" id="cancelHealth" type="button">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="row" style="justify-content:space-between">
+        <h2>Timeline</h2>
+        <button class="btn" id="checkStorage" type="button">Check storage</button>
+      </div>
+      <div class="list" id="healthTimeline"></div>
+      <div class="toolbar">
+        <button class="btn" id="exportHealth" type="button">Export JSON</button>
+        <button class="btn" id="exportHealthCsv" type="button">Export CSV</button>
+        <button class="btn" id="exportWeekReview" type="button">Export 7-day review</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Personal food memory</h2>
+      <p class="note">Edit carbohydrate estimates or delete foods you no longer want remembered. Deleting a food does not delete older meal records.</p>
+      <div class="list" id="foodLibrary"></div>
+    </section>
+  </section>
 </main>
+
+<footer class="suite-footer">5 Million Minutes · Stolen Minutes</footer>
+
 <dialog id="captureDialog" class="capture-dialog">
   <form class="grid" id="captureForm">
     <h3 id="captureDialogTitle">Speak</h3>
     <p class="note" id="captureDialogHint"></p>
     <p class="capture-status" id="captureListening">Listening…</p>
     <textarea class="field capture" id="captureText" placeholder="Transcription appears here"></textarea>
-    <div class="toolbar"><button class="btn primary">Save</button><button class="btn" id="captureRetry" type="button">Try again</button><button class="btn" id="captureCancel" type="button">Cancel</button></div>
+    <div class="toolbar">
+      <button class="btn primary">Save</button>
+      <button class="btn" id="captureRetry" type="button">Try again</button>
+      <button class="btn" id="captureCancel" type="button">Cancel</button>
+    </div>
   </form>
 </dialog>
 <dialog id="editFoodDialog">
@@ -120,8 +238,16 @@
     <input type="hidden" id="foodId">
     <input class="field" id="foodName" required placeholder="Food name">
     <input class="field" id="foodAliases" placeholder="Aliases, separated by commas">
-    <div class="grid two"><input class="field" id="foodPortion" placeholder="Usual portion"><input class="field" id="foodCarbs" type="number" step="0.1" min="0" placeholder="Carbs per portion (g)"></div>
-    <div class="toolbar"><button class="btn primary" value="save">Save</button><button class="btn" type="button" id="cancelFoodEdit">Cancel</button></div>
+    <div class="grid two">
+      <input class="field" id="foodPortion" placeholder="Usual portion">
+      <input class="field" id="foodCarbs" type="number" step="0.1" min="0" placeholder="Carbs per portion (g)">
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" value="save">Save</button>
+      <button class="btn" type="button" id="cancelFoodEdit">Cancel</button>
+    </div>
   </form>
 </dialog>
-<script type="module" src="/app.js"></script></body></html>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
